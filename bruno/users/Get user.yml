@@ -1,0 +1,98 @@
+info:
+  name: Get user
+  type: http
+  seq: 34
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/admin/users/{{userId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        bru.setNextRequest('Get highlight');
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/admin/users/53ff9709-69e4-4aba-a02b-4955381f5a1c"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Found user with id 53ff9709-69e4-4aba-a02b-4955381f5a1c"
+            ],
+            "data": {
+              "id": "53ff9709-69e4-4aba-a02b-4955381f5a1c",
+              "email": "siti.rahayu@email.com",
+              "name": "Siti Rahayu",
+              "phone": "081234567890",
+              "role": "USER",
+              "isVerified": true,
+              "createdAt": "2026-05-25T14:13:29.168Z",
+              "updatedAt": "2026-05-25T14:13:29.168Z"
+            },
+            "timestamp": "2026-05-25T14:24:08.485Z"
+          }
+  - name: "Not Found (404)"
+    request:
+      url: "{{baseUrl}}/api/admin/users/00000000-0000-0000-0000-000000000000"
+      method: GET
+    response:
+      status: 404
+      statusText: "Not Found"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 404,
+            "message": [
+              "User with id 00000000-0000-0000-0000-000000000000 not found"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }
+  - name: "Unauthorized (401)"
+    request:
+      url: "{{baseUrl}}/api/admin/users/53ff9709-69e4-4aba-a02b-4955381f5a1c"
+      method: GET
+    response:
+      status: 401
+      statusText: "Unauthorized"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 401,
+            "message": [
+              "Unauthorized"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T14:24:28.269Z"
+          }

@@ -1,0 +1,127 @@
+info:
+  name: Create discount
+  type: http
+  seq: 44
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/admin/products/{{productId}}/variants/{{variantId}}/discount"
+  body:
+    type: json
+    data: |-
+      {
+        "isPercent": false,
+        "amount": 1032,
+        "startedAt": "2026-01-01T00:00:00.000Z",
+        "endsAt": "2026-12-31T23:59:59.000Z"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        bru.setNextRequest('Add to cart');
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (201)"
+    request:
+      url: "{{baseUrl}}/api/admin/products/1/variants/1/discount"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "isPercent": false,
+            "amount": 5000,
+            "startedAt": "2026-01-01T00:00:00.000Z",
+            "endsAt": "2026-12-31T23:59:59.000Z"
+          }
+    response:
+      status: 201
+      statusText: "Created"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 201,
+            "message": [
+              "Discount created successfully"
+            ],
+            "data": {
+              "id": 1,
+              "variantId": 1,
+              "amount": "5000",
+              "isPercent": false,
+              "startedAt": "2026-01-01T00:00:00.000Z",
+              "endsAt": "2026-12-31T23:59:59.000Z"
+            },
+            "timestamp": "2026-05-25T14:30:00.000Z"
+          }
+  - name: "Unauthorized (401)"
+    request:
+      url: "{{baseUrl}}/api/admin/products/1/variants/1/discount"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "amount": ""
+          }
+    response:
+      status: 401
+      statusText: "Unauthorized"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 401,
+            "message": [
+              "Unauthorized"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }
+  - name: "Validation Error (400)"
+    request:
+      url: "{{baseUrl}}/api/admin/products/1/variants/1/discount"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "amount": "",
+            "endsAt": "not-a-date"
+          }
+    response:
+      status: 400
+      statusText: "Bad Request"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 400,
+            "message": [
+              "endsAt must be a valid ISO 8601 date string"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T14:24:28.235Z"
+          }

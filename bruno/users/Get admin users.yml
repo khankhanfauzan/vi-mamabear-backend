@@ -1,0 +1,68 @@
+info:
+  name: "Get admin users"
+  type: http
+  seq: 34
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/admin/users"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (body && body.data && body.data.items && body.data.items.length > 0) {
+          bru.setVar('userId', body.data.items[0].id || '');
+        }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/admin/users?page=1&limit=10&sortBy=createdAt&sortOrder=desc"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Returned 3 admin users (page 1 of 1)"
+            ],
+            "data": {
+              "items": [
+                {
+                  "id": "a1b2c3d4-5678-9012-abcd-ef1234567890",
+                  "email": "superadmin@mamabear.com",
+                  "name": "Super Admin",
+                  "phone": "081234567001",
+                  "role": "SUPERADMIN",
+                  "isBlocked": false,
+                  "isVerified": true,
+                  "createdAt": "2026-05-25T14:13:29.168Z",
+                  "updatedAt": null
+                }
+              ],
+              "pagination": {
+                "page": 1,
+                "limit": 10,
+                "totalItems": 3,
+                "totalPages": 1
+              }
+            },
+            "timestamp": "2026-06-16T00:00:00.000Z"
+          }

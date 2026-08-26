@@ -1,0 +1,388 @@
+info:
+  name: Duplicate
+  type: http
+  seq: 24
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/admin/products/{{productId}}/duplicate"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: success
+    request:
+      url: "{{baseUrl}}/api/admin/products/{{productId}}/duplicate"
+      method: POST
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: x-powered-by
+          value: Express
+        - name: vary
+          value: Origin
+        - name: access-control-allow-credentials
+          value: "true"
+        - name: content-type
+          value: application/json; charset=utf-8
+        - name: content-length
+          value: "7936"
+        - name: etag
+          value: W/"1f00-a/LNoddqgH1xKT58pHqLhUgZO4s"
+        - name: date
+          value: Thu, 11 Jun 2026 09:43:57 GMT
+        - name: connection
+          value: keep-alive
+        - name: keep-alive
+          value: timeout=5
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 201,
+            "message": [
+              "Product MamaBear AlmonMix Isi 6 Sachet - Minuman Serbuk dengan Almond - Kaya Nutrisi Untuk Ibu Menyusui BPOM HALAL duplicated successfully"
+            ],
+            "data": {
+              "id": 6,
+              "name": "MamaBear AlmonMix Isi 6 Sachet - Minuman Serbuk dengan Almond - Kaya Nutrisi Untuk Ibu Menyusui BPOM HALAL (Copy)",
+              "slug": "mamabear-almonmix-isi-6-sachet-copy-1781171024974",
+              "isActive": false,
+              "totalSold": 0,
+              "categoryId": 1,
+              "highlightId": 2,
+              "tags": [],
+              "description": "MamaBear AlmonMix Isi 6 Sachet\nMinuman Almond Kaya Nutrisi dengan Daun Katuk & Daun Kelor.\n\n\nLACTOSE FREE\nTINGGI VITAMIN A, B1, B2, B6, B9 (ASAM FOLAT), B12\nTINGGI VITAMIN C & ZAT BESI\nTINGGI SERAT PANGAN\nMAKRO & MIKRO NUTRISI LENGKAP\n\n\nHadir dalam 7 varian rasa:\nCokelat\nChoco Hazelnut\nCoffee Latte\nStrawberry\nVanilla\nMatcha\nCaramel\n\n\nCara penyajian:\nSeduh 1 sachet MamaBear AlmonMix dengan 200 ml air hangat.\nDapat ditambahkan es batu jika ingin disajikan dingin.\n\n\nIngredients:\nDaun Katuk\nDaun Kelor\nAlmond\nEkstrak Ragi\n\n\nKeunggulan Mamabear AlmonMix:\nEfektif meningkatkan produksi dan nutrisi ASI.\nEfektif membantu ASI cepat keluar.\nMeningkatkan mood untuk membantu mengurangi risiko baby blues.",
+              "ingredients": null,
+              "usageInstructions": null,
+              "createdAt": "2026-06-11T09:43:57.504Z",
+              "updatedAt": "2026-06-11T09:43:57.504Z",
+              "metaTitle": null,
+              "metaDescription": null,
+              "images": [
+                {
+                  "id": 50,
+                  "publicId": "products/cl42sxugzrpkdcngi363",
+                  "productId": 6,
+                  "variantId": null,
+                  "reviewId": null,
+                  "categoryId": null,
+                  "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1781171023/products/cl42sxugzrpkdcngi363.jpg",
+                  "sortOrder": 1,
+                  "altText": "MamaBear AlmonMix 01",
+                  "width": 1080,
+                  "height": 1080,
+                  "fileSize": 184720,
+                  "format": "jpg"
+                },
+                {
+                  "id": 51,
+                  "publicId": "products/gw6evgm7kfeyqxv6ltv4",
+                  "productId": 6,
+                  "variantId": null,
+                  "reviewId": null,
+                  "categoryId": null,
+                  "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1781171023/products/gw6evgm7kfeyqxv6ltv4.jpg",
+                  "sortOrder": 2,
+                  "altText": "MamaBear AlmonMix 02",
+                  "width": 1080,
+                  "height": 1080,
+                  "fileSize": 158324,
+                  "format": "jpg"
+                },
+                {
+                  "id": 52,
+                  "publicId": "products/l20oplfwvss8290wmnpy",
+                  "productId": 6,
+                  "variantId": null,
+                  "reviewId": null,
+                  "categoryId": null,
+                  "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1781171023/products/l20oplfwvss8290wmnpy.jpg",
+                  "sortOrder": 3,
+                  "altText": "MamaBear AlmonMix 03",
+                  "width": 1080,
+                  "height": 1080,
+                  "fileSize": 164836,
+                  "format": "jpg"
+                },
+                {
+                  "id": 53,
+                  "publicId": "products/gwq0md773qujei6nbxb3",
+                  "productId": 6,
+                  "variantId": null,
+                  "reviewId": null,
+                  "categoryId": null,
+                  "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1781171023/products/gwq0md773qujei6nbxb3.jpg",
+                  "sortOrder": 4,
+                  "altText": "MamaBear AlmonMix 04",
+                  "width": 1080,
+                  "height": 1080,
+                  "fileSize": 80321,
+                  "format": "jpg"
+                },
+                {
+                  "id": 54,
+                  "publicId": "products/nnijfqsrdaxdpstt948g",
+                  "productId": 6,
+                  "variantId": null,
+                  "reviewId": null,
+                  "categoryId": null,
+                  "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1781171023/products/nnijfqsrdaxdpstt948g.jpg",
+                  "sortOrder": 5,
+                  "altText": "MamaBear AlmonMix 05",
+                  "width": 1080,
+                  "height": 1080,
+                  "fileSize": 79980,
+                  "format": "jpg"
+                }
+              ],
+              "variants": [
+                {
+                  "id": 15,
+                  "productId": 6,
+                  "name": "Cokelat",
+                  "priceIdr": "80000",
+                  "weightG": 180,
+                  "sku": "MAMABEAR-ALMONMIX-ISI-6-SACHET-COPY-1781171024974-COKELAT",
+                  "stock": 100,
+                  "sortOrder": 0,
+                  "createdAt": "2026-06-11T09:43:57.504Z",
+                  "updatedAt": "2026-06-11T09:43:57.504Z",
+                  "images": [
+                    {
+                      "id": 55,
+                      "publicId": "products/yoh8mhijiuuugxrhiicr",
+                      "productId": null,
+                      "variantId": 15,
+                      "reviewId": null,
+                      "categoryId": null,
+                      "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1781171026/products/yoh8mhijiuuugxrhiicr.png",
+                      "sortOrder": 1,
+                      "altText": "MamaBear AlmonMix Cokelat",
+                      "width": 2193,
+                      "height": 5254,
+                      "fileSize": 5073536,
+                      "format": "png"
+                    }
+                  ],
+                  "discount": null
+                },
+                {
+                  "id": 16,
+                  "productId": 6,
+                  "name": "Choco Hazelnut",
+                  "priceIdr": "80000",
+                  "weightG": 180,
+                  "sku": "MAMABEAR-ALMONMIX-ISI-6-SACHET-COPY-1781171024974-CHOCO-HAZELNUT",
+                  "stock": 100,
+                  "sortOrder": 1,
+                  "createdAt": "2026-06-11T09:43:57.504Z",
+                  "updatedAt": "2026-06-11T09:43:57.504Z",
+                  "images": [
+                    {
+                      "id": 56,
+                      "publicId": "products/fglzi5askfqbsqs0gm1a",
+                      "productId": null,
+                      "variantId": 16,
+                      "reviewId": null,
+                      "categoryId": null,
+                      "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1781171025/products/fglzi5askfqbsqs0gm1a.png",
+                      "sortOrder": 1,
+                      "altText": "MamaBear AlmonMix Choco Hazelnut",
+                      "width": 2193,
+                      "height": 5254,
+                      "fileSize": 4907951,
+                      "format": "png"
+                    }
+                  ],
+                  "discount": {
+                    "id": 8,
+                    "variantId": 16,
+                    "amount": "18366",
+                    "isPercent": false,
+                    "startedAt": "2026-05-12T05:47:16.188Z",
+                    "endsAt": "2026-07-08T02:21:15.290Z"
+                  }
+                },
+                {
+                  "id": 17,
+                  "productId": 6,
+                  "name": "Matcha",
+                  "priceIdr": "80000",
+                  "weightG": 180,
+                  "sku": "MAMABEAR-ALMONMIX-ISI-6-SACHET-COPY-1781171024974-MATCHA",
+                  "stock": 100,
+                  "sortOrder": 2,
+                  "createdAt": "2026-06-11T09:43:57.504Z",
+                  "updatedAt": "2026-06-11T09:43:57.504Z",
+                  "images": [
+                    {
+                      "id": 57,
+                      "publicId": "products/cxuwmej04yueks98y0fk",
+                      "productId": null,
+                      "variantId": 17,
+                      "reviewId": null,
+                      "categoryId": null,
+                      "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1781171025/products/cxuwmej04yueks98y0fk.png",
+                      "sortOrder": 1,
+                      "altText": "MamaBear AlmonMix Matcha",
+                      "width": 2197,
+                      "height": 5247,
+                      "fileSize": 4883154,
+                      "format": "png"
+                    }
+                  ],
+                  "discount": {
+                    "id": 9,
+                    "variantId": 17,
+                    "amount": "5790",
+                    "isPercent": false,
+                    "startedAt": "2026-06-23T01:57:19.149Z",
+                    "endsAt": "2026-05-31T12:59:36.756Z"
+                  }
+                },
+                {
+                  "id": 18,
+                  "productId": 6,
+                  "name": "Vanilla",
+                  "priceIdr": "80000",
+                  "weightG": 180,
+                  "sku": "MAMABEAR-ALMONMIX-ISI-6-SACHET-COPY-1781171024974-VANILLA",
+                  "stock": 100,
+                  "sortOrder": 3,
+                  "createdAt": "2026-06-11T09:43:57.504Z",
+                  "updatedAt": "2026-06-11T09:43:57.504Z",
+                  "images": [
+                    {
+                      "id": 58,
+                      "publicId": "products/ukots4bpfzi20wjoaxer",
+                      "productId": null,
+                      "variantId": 18,
+                      "reviewId": null,
+                      "categoryId": null,
+                      "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1781171025/products/ukots4bpfzi20wjoaxer.png",
+                      "sortOrder": 1,
+                      "altText": "MamaBear AlmonMix Vanilla",
+                      "width": 2186,
+                      "height": 5288,
+                      "fileSize": 4912254,
+                      "format": "png"
+                    }
+                  ],
+                  "discount": {
+                    "id": 10,
+                    "variantId": 18,
+                    "amount": "16",
+                    "isPercent": true,
+                    "startedAt": "2026-05-26T04:43:13.327Z",
+                    "endsAt": "2026-08-05T18:24:31.158Z"
+                  }
+                },
+                {
+                  "id": 19,
+                  "productId": 6,
+                  "name": "Coffee Latte",
+                  "priceIdr": "80000",
+                  "weightG": 180,
+                  "sku": "MAMABEAR-ALMONMIX-ISI-6-SACHET-COPY-1781171024974-COFFEE-LATTE",
+                  "stock": 100,
+                  "sortOrder": 4,
+                  "createdAt": "2026-06-11T09:43:57.504Z",
+                  "updatedAt": "2026-06-11T09:43:57.504Z",
+                  "images": [
+                    {
+                      "id": 59,
+                      "publicId": "products/jbp6qmhcyna2oydfncdd",
+                      "productId": null,
+                      "variantId": 19,
+                      "reviewId": null,
+                      "categoryId": null,
+                      "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1781171025/products/jbp6qmhcyna2oydfncdd.png",
+                      "sortOrder": 1,
+                      "altText": "MamaBear AlmonMix Coffee Latte",
+                      "width": 2207,
+                      "height": 5254,
+                      "fileSize": 4995217,
+                      "format": "png"
+                    }
+                  ],
+                  "discount": null
+                },
+                {
+                  "id": 20,
+                  "productId": 6,
+                  "name": "Strawberry",
+                  "priceIdr": "80000",
+                  "weightG": 180,
+                  "sku": "MAMABEAR-ALMONMIX-ISI-6-SACHET-COPY-1781171024974-STRAWBERRY",
+                  "stock": 100,
+                  "sortOrder": 5,
+                  "createdAt": "2026-06-11T09:43:57.504Z",
+                  "updatedAt": "2026-06-11T09:43:57.504Z",
+                  "images": [
+                    {
+                      "id": 60,
+                      "publicId": "products/kdxz5rgeyzroxfxpckno",
+                      "productId": null,
+                      "variantId": 20,
+                      "reviewId": null,
+                      "categoryId": null,
+                      "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1781171026/products/kdxz5rgeyzroxfxpckno.png",
+                      "sortOrder": 1,
+                      "altText": "MamaBear AlmonMix Strawberry",
+                      "width": 2186,
+                      "height": 5240,
+                      "fileSize": 5032694,
+                      "format": "png"
+                    }
+                  ],
+                  "discount": null
+                },
+                {
+                  "id": 21,
+                  "productId": 6,
+                  "name": "Caramel",
+                  "priceIdr": "80000",
+                  "weightG": 180,
+                  "sku": "MAMABEAR-ALMONMIX-ISI-6-SACHET-COPY-1781171024974-CARAMEL",
+                  "stock": 100,
+                  "sortOrder": 6,
+                  "createdAt": "2026-06-11T09:43:57.504Z",
+                  "updatedAt": "2026-06-11T09:43:57.504Z",
+                  "images": [
+                    {
+                      "id": 61,
+                      "publicId": "products/obryfkjhwncahq2prgdn",
+                      "productId": null,
+                      "variantId": 21,
+                      "reviewId": null,
+                      "categoryId": null,
+                      "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1781171026/products/obryfkjhwncahq2prgdn.png",
+                      "sortOrder": 1,
+                      "altText": "MamaBear AlmonMix Caramel",
+                      "width": 2193,
+                      "height": 5254,
+                      "fileSize": 5026727,
+                      "format": "png"
+                    }
+                  ],
+                  "discount": {
+                    "id": 11,
+                    "variantId": 21,
+                    "amount": "19",
+                    "isPercent": true,
+                    "startedAt": "2026-05-12T05:16:44.091Z",
+                    "endsAt": "2026-07-17T17:18:07.817Z"
+                  }
+                }
+              ]
+            },
+            "timestamp": "2026-06-11T09:43:57.557Z"
+          }

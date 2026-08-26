@@ -1,0 +1,7 @@
+info:
+  name: settings
+  type: folder
+  seq: 30
+
+request:
+  auth: inherit

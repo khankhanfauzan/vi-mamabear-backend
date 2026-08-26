@@ -1,0 +1,188 @@
+info:
+  name: "[ADMIN] Update user status"
+  type: http
+  seq: 35
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/admin/users/{{userId}}/status"
+  body:
+    type: json
+    data: |-
+      {
+        "isBlocked": true
+      }
+  auth: inherit
+
+runtime:
+  variables:
+    - name: userId
+      value: ""
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success - Deactivate (200)"
+    request:
+      url: "{{baseUrl}}/api/admin/users/234657ea-5641-4824-a9f8-a933c4f18b29/status"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "isBlocked": true
+          }
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "User deactivated successfully"
+            ],
+            "data": {
+              "id": "234657ea-5641-4824-a9f8-a933c4f18b29",
+              "email": "rina.wati@email.com",
+              "name": "Rina Wati",
+              "phone": "082112345678",
+              "role": "ADMIN",
+              "isBlocked": true,
+              "isVerified": true,
+              "createdAt": "2026-06-11T15:01:06.321Z",
+              "updatedAt": "2026-06-12T07:12:00.000Z"
+            },
+            "timestamp": "2026-06-12T07:12:00.000Z"
+          }
+  - name: "Success - Reactivate (200)"
+    request:
+      url: "{{baseUrl}}/api/admin/users/234657ea-5641-4824-a9f8-a933c4f18b29/status"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "isBlocked": false
+          }
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "User reactivated successfully"
+            ],
+            "data": {
+              "id": "234657ea-5641-4824-a9f8-a933c4f18b29",
+              "email": "rina.wati@email.com",
+              "name": "Rina Wati",
+              "phone": "082112345678",
+              "role": "ADMIN",
+              "isBlocked": false,
+              "isVerified": true,
+              "createdAt": "2026-06-11T15:01:06.321Z",
+              "updatedAt": "2026-06-12T07:12:00.000Z"
+            },
+            "timestamp": "2026-06-12T07:12:00.000Z"
+          }
+  - name: "Cannot change own status (400)"
+    request:
+      url: "{{baseUrl}}/api/admin/users/{{ownAdminId}}/status"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "isBlocked": true
+          }
+    response:
+      status: 400
+      statusText: "Bad Request"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 400,
+            "message": [
+              "Cannot change your own status"
+            ],
+            "data": null,
+            "timestamp": "2026-06-12T07:12:00.000Z"
+          }
+  - name: "Cannot deactivate last SUPERADMIN (400)"
+    request:
+      url: "{{baseUrl}}/api/admin/users/{{superAdminId}}/status"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "isBlocked": true
+          }
+    response:
+      status: 400
+      statusText: "Bad Request"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 400,
+            "message": [
+              "Cannot deactivate the last active SUPERADMIN"
+            ],
+            "data": null,
+            "timestamp": "2026-06-12T07:12:00.000Z"
+          }
+  - name: "Not Found (404)"
+    request:
+      url: "{{baseUrl}}/api/admin/users/00000000-0000-0000-0000-000000000000/status"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "isBlocked": true
+          }
+    response:
+      status: 404
+      statusText: "Not Found"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 404,
+            "message": [
+              "User with id 00000000-0000-0000-0000-000000000000 not found"
+            ],
+            "data": null,
+            "timestamp": "2026-06-12T07:12:00.000Z"
+          }

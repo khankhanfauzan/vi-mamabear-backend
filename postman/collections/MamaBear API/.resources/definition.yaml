@@ -1,0 +1,4 @@
+$kind: collection
+description: MamaBear Backend API collection
+variables:
+  baseUrl: https://mamabear-backend-production.up.railway.app

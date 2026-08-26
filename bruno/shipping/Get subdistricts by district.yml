@@ -1,0 +1,69 @@
+info:
+  name: Get subdistricts by district
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/shipping/subdistrict/{{districtId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        bru.setNextRequest('Calculate Shipping Cost');
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/shipping/subdistrict/1"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": ["No message specified"],
+            "data": [
+              {
+                "id": "1",
+                "name": "Sanur",
+                "districtId": "1"
+              }
+            ],
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }
+  - name: "Unauthorized (401)"
+    request:
+      url: "{{baseUrl}}/api/shipping/subdistrict/1"
+      method: GET
+    response:
+      status: 401
+      statusText: "Unauthorized"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 401,
+            "message": ["Unauthorized"],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }

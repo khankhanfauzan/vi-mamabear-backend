@@ -1,0 +1,174 @@
+info:
+  name: Create product review
+  type: http
+  seq: 24
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/products/{{productSlug}}/reviews"
+  body:
+    type: json
+    data: |-
+      {
+        "title": "Sangat puas",
+        "reviewerId": "{{userId}}",
+        "description": "ASI saya meningkat drastis setelah 1 minggu konsumsi",
+        "rating": 5,
+        "imageUrls": []
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (body && body.data) {
+          bru.setVar('reviewId', body.data.id || '');
+        }
+        bru.setNextRequest('Create discount');
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (201)"
+    request:
+      url: "{{baseUrl}}/api/products/mamabear-almonmix-isi-6-sachet/reviews"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "title": "Sangat puas",
+            "reviewerId": "53ff9709-69e4-4aba-a02b-4955381f5a1c",
+            "description": "ASI saya meningkat drastis setelah 1 minggu konsumsi",
+            "rating": 5,
+            "imageUrls": []
+          }
+    response:
+      status: 201
+      statusText: "Created"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 201,
+            "message": [
+              "Review created successfully"
+            ],
+            "data": {
+              "id": 1,
+              "title": "Sangat puas",
+              "reviewerId": "53ff9709-69e4-4aba-a02b-4955381f5a1c",
+              "productId": 1,
+              "rating": 5,
+              "numUpvotes": 0,
+              "description": "ASI saya meningkat drastis setelah 1 minggu konsumsi",
+              "imageUrls": [],
+              "createdAt": "2026-05-25T14:23:39.391Z"
+            },
+            "timestamp": "2026-05-25T14:23:39.400Z"
+          }
+  - name: "Unauthorized (401)"
+    request:
+      url: "{{baseUrl}}/api/products/mamabear-almonmix-isi-6-sachet/reviews"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "title": "Test"
+          }
+    response:
+      status: 401
+      statusText: "Unauthorized"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 401,
+            "message": [
+              "Unauthorized"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }
+  - name: "Validation Error (400)"
+    request:
+      url: "{{baseUrl}}/api/products/mamabear-almonmix-isi-6-sachet/reviews"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "title": "",
+            "reviewerId": "",
+            "description": "",
+            "rating": 0
+          }
+    response:
+      status: 400
+      statusText: "Bad Request"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 400,
+            "message": [
+              "title should not be empty",
+              "reviewerId should not be empty",
+              "description should not be empty",
+              "rating must not be less than 1",
+              "imageUrls must be an array"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T14:24:28.235Z"
+          }
+  - name: "Not Found (404)"
+    request:
+      url: "{{baseUrl}}/api/products/nonexistent-xyz/reviews"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "title": "Test Review",
+            "reviewerId": "53ff9709-69e4-4aba-a02b-4955381f5a1c",
+            "description": "Test description",
+            "rating": 5,
+            "imageUrls": []
+          }
+    response:
+      status: 404
+      statusText: "Not Found"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 404,
+            "message": [
+              "Cannot find product with slug nonexistent-xyz"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T14:24:28.261Z"
+          }

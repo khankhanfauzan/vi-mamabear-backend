@@ -1,0 +1,33 @@
+info:
+  name: Send payment notification (simulate midtrans)
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/payment/notification"
+  body:
+    type: json
+    data: |-
+      {
+        "transaction_time": "2023-11-15 18:45:13",
+        "transaction_status": "settlement",
+        "transaction_id": "513f1f01-c9da-474c-9fc9-d5c64364b709",
+        "status_message": "midtrans payment notification",
+        "status_code": "200",
+        "signature_key": "7aad784c43078f96a1c44c8c6e157e7f09b610f9e27ce6b3baa2db39e7eee86046644c35aa7b06c90609fcebf9f0cd4b69a9fd0f0256e7167001aa09693af8c3",
+        "settlement_time": "2023-11-15 22:45:13",
+        "payment_type": "gopay",
+        "order_id": "019eb265-b1ff-70ba-88ae-2b4bef12bca2",
+        "merchant_id": "M484961216",
+        "gross_amount": "105000.00",
+        "fraud_status": "accept",
+        "currency": "IDR"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

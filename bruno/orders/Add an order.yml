@@ -1,0 +1,23 @@
+info:
+  name: Add an order
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/order"
+  body:
+    type: json
+    data: |-
+      {
+        "cartId" : "019eb265-b1ff-70ba-88ae-2b4bef12bca2",
+        "addressId": 1,
+        "notes": "personal notes"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

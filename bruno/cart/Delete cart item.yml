@@ -1,0 +1,48 @@
+info:
+  name: Delete cart item
+  type: http
+  seq: 30
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/api/cart/items/{{cartItemId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        bru.setVar('phase', 'read-created');
+        bru.setNextRequest('Get one product');
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/cart/items/item-uuid"
+      method: DELETE
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Cart item removed successfully"
+            ],
+            "data": {
+              "id": "item-uuid"
+            },
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }

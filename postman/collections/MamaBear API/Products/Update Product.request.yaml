@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{baseUrl}}/products/{{productId}}"
+method: PUT
+headers:
+  Content-Type: application/json
+pathVariables:
+  id: "{{productId}}"
+body:
+  type: json
+  content: |-
+    {
+      "name": "Updated Baby Carrier",
+      "price_idr": 195000,
+      "stock": 15
+    }
+order: 4000

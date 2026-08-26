@@ -1,0 +1,100 @@
+info:
+  name: Delete variant
+  type: http
+  seq: 54
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/api/admin/products/variants/{{variantId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        bru.setNextRequest('Delete product');
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/admin/products/variants/7"
+      method: DELETE
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Variant UPDATED-TEST-CAPTURE-PRODUCT-UPDATED-TEST-VARIANT deleted successfully"
+            ],
+            "data": {
+              "id": 7,
+              "productId": 6,
+              "name": "Updated Test Variant",
+              "priceIdr": "55000",
+              "weightG": 100,
+              "sku": "UPDATED-TEST-CAPTURE-PRODUCT-UPDATED-TEST-VARIANT",
+              "stock": 60,
+              "sortOrder": 0,
+              "createdAt": "2026-05-25T14:30:00.000Z",
+              "updatedAt": "2026-05-25T14:31:00.000Z"
+            },
+            "timestamp": "2026-05-25T14:32:00.000Z"
+          }
+  - name: "Not Found (400)"
+    request:
+      url: "{{baseUrl}}/api/admin/products/variants/999999"
+      method: DELETE
+    response:
+      status: 400
+      statusText: "Bad Request"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 400,
+            "message": [
+              "variant not found"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }
+  - name: "Unauthorized (401)"
+    request:
+      url: "{{baseUrl}}/api/admin/products/variants/1"
+      method: DELETE
+    response:
+      status: 401
+      statusText: "Unauthorized"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 401,
+            "message": [
+              "Unauthorized"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }

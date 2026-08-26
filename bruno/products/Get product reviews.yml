@@ -1,0 +1,87 @@
+info:
+  name: Get product reviews
+  type: http
+  seq: 10
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/products/{{productSlug}}/reviews"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        bru.setNextRequest('Get review summary');
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/products/mamabear-almonmix-isi-6-sachet/reviews?limit=10&cursor=1"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Found 1 reviews for product mamabear-almonmix-isi-6-sachet"
+            ],
+            "data": {
+              "success": true,
+              "data": [
+                {
+                  "id": 1,
+                  "title": "Sangat puas",
+                  "reviewerId": "53ff9709-69e4-4aba-a02b-4955381f5a1c",
+                  "productId": 1,
+                  "rating": 5,
+                  "numUpvotes": 0,
+                  "description": "ASI saya meningkat drastis setelah 1 minggu konsumsi",
+                  "imageUrls": [],
+                  "createdAt": "2026-05-25T14:23:39.391Z"
+                }
+              ],
+              "pagination": {
+                "limit": 10,
+                "nextCursor": null,
+                "hasNextPage": false
+              }
+            },
+            "timestamp": "2026-05-25T14:24:08.618Z"
+          }
+  - name: "Not Found (404)"
+    request:
+      url: "{{baseUrl}}/api/products/nonexistent-xyz/reviews"
+      method: GET
+    response:
+      status: 404
+      statusText: "Not Found"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 404,
+            "message": [
+              "Cannot find product with slug nonexistent-xyz"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T14:24:28.261Z"
+          }

@@ -1,0 +1,245 @@
+info:
+  name: Dashboard
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/admin/reports/dashboard"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: Dashboard success
+    request:
+      url: "{{baseUrl}}/api/reports"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: x-powered-by
+          value: Express
+        - name: vary
+          value: Origin
+        - name: access-control-allow-credentials
+          value: "true"
+        - name: content-type
+          value: application/json; charset=utf-8
+        - name: content-length
+          value: "3349"
+        - name: etag
+          value: W/"d15-us76tgPD5t9Rk9UZze2vf0W2TXk"
+        - name: date
+          value: Tue, 09 Jun 2026 16:25:01 GMT
+        - name: connection
+          value: keep-alive
+        - name: keep-alive
+          value: timeout=5
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Dashboard"
+            ],
+            "data": {
+              "getRevenueOrders": [
+                {
+                  "subtotalIdr": 0,
+                  "taxIdr": 0,
+                  "shippingCostIdr": 0
+                }
+              ],
+              "totalRevenue": 0,
+              "getOrderCount": 1,
+              "getCustomerCount": 5,
+              "getProductCount": 5,
+              "getRecentOrder": [
+                {
+                  "orderItems": [
+                    {
+                      "product": {
+                        "name": "MamaBear AlmonMix Isi 6 Sachet - Minuman Serbuk dengan Almond - Kaya Nutrisi Untuk Ibu Menyusui BPOM HALAL"
+                      },
+                      "variant": {
+                        "name": "Choco Hazelnut"
+                      }
+                    }
+                  ],
+                  "user": {
+                    "name": "yous",
+                    "email": "yous@gmail.com"
+                  }
+                }
+              ],
+              "getLowStockProducts": [
+                {
+                  "name": "Cokelat",
+                  "stock": 100,
+                  "product": {
+                    "name": "MamaBear AlmonMix Isi 6 Sachet - Minuman Serbuk dengan Almond - Kaya Nutrisi Untuk Ibu Menyusui BPOM HALAL"
+                  }
+                },
+                {
+                  "name": "Choco Hazelnut",
+                  "stock": 100,
+                  "product": {
+                    "name": "MamaBear AlmonMix Isi 6 Sachet - Minuman Serbuk dengan Almond - Kaya Nutrisi Untuk Ibu Menyusui BPOM HALAL"
+                  }
+                },
+                {
+                  "name": "Matcha",
+                  "stock": 100,
+                  "product": {
+                    "name": "MamaBear AlmonMix Isi 6 Sachet - Minuman Serbuk dengan Almond - Kaya Nutrisi Untuk Ibu Menyusui BPOM HALAL"
+                  }
+                },
+                {
+                  "name": "Vanilla",
+                  "stock": 100,
+                  "product": {
+                    "name": "MamaBear AlmonMix Isi 6 Sachet - Minuman Serbuk dengan Almond - Kaya Nutrisi Untuk Ibu Menyusui BPOM HALAL"
+                  }
+                },
+                {
+                  "name": "Coffee Latte",
+                  "stock": 100,
+                  "product": {
+                    "name": "MamaBear AlmonMix Isi 6 Sachet - Minuman Serbuk dengan Almond - Kaya Nutrisi Untuk Ibu Menyusui BPOM HALAL"
+                  }
+                },
+                {
+                  "name": "Strawberry",
+                  "stock": 100,
+                  "product": {
+                    "name": "MamaBear AlmonMix Isi 6 Sachet - Minuman Serbuk dengan Almond - Kaya Nutrisi Untuk Ibu Menyusui BPOM HALAL"
+                  }
+                },
+                {
+                  "name": "Caramel",
+                  "stock": 100,
+                  "product": {
+                    "name": "MamaBear AlmonMix Isi 6 Sachet - Minuman Serbuk dengan Almond - Kaya Nutrisi Untuk Ibu Menyusui BPOM HALAL"
+                  }
+                },
+                {
+                  "name": "Cokelat",
+                  "stock": 100,
+                  "product": {
+                    "name": "MamaBear ZoyaMix Rasa Cokelat Isi 10 Sachet - Sereal Kaya Nutrisi untuk Ibu Menyusui Halal BPOM"
+                  }
+                },
+                {
+                  "name": "Strawberry",
+                  "stock": 100,
+                  "product": {
+                    "name": "MamaBear Teh Pelancar ASI Isi 20 Sachet - ASI Booster Pelancar Peningkat Produksi ASI BPOM dan Halal"
+                  }
+                },
+                {
+                  "name": "Blueberry",
+                  "stock": 100,
+                  "product": {
+                    "name": "MamaBear Teh Pelancar ASI Isi 20 Sachet - ASI Booster Pelancar Peningkat Produksi ASI BPOM dan Halal"
+                  }
+                }
+              ],
+              "getTopSellingProducts": [
+                {
+                  "name": "MamaBear AlmonMix Isi 6 Sachet - Minuman Serbuk dengan Almond - Kaya Nutrisi Untuk Ibu Menyusui BPOM HALAL",
+                  "totalSold": 0,
+                  "variants": [
+                    {
+                      "name": "Cokelat",
+                      "priceIdr": "80000"
+                    },
+                    {
+                      "name": "Choco Hazelnut",
+                      "priceIdr": "80000"
+                    },
+                    {
+                      "name": "Matcha",
+                      "priceIdr": "80000"
+                    },
+                    {
+                      "name": "Vanilla",
+                      "priceIdr": "80000"
+                    },
+                    {
+                      "name": "Coffee Latte",
+                      "priceIdr": "80000"
+                    },
+                    {
+                      "name": "Strawberry",
+                      "priceIdr": "80000"
+                    },
+                    {
+                      "name": "Caramel",
+                      "priceIdr": "80000"
+                    }
+                  ]
+                },
+                {
+                  "name": "MamaBear ZoyaMix Rasa Cokelat Isi 10 Sachet - Sereal Kaya Nutrisi untuk Ibu Menyusui Halal BPOM",
+                  "totalSold": 0,
+                  "variants": [
+                    {
+                      "name": "Cokelat",
+                      "priceIdr": "80000"
+                    }
+                  ]
+                },
+                {
+                  "name": "MamaBear Teh Pelancar ASI Isi 20 Sachet - ASI Booster Pelancar Peningkat Produksi ASI BPOM dan Halal",
+                  "totalSold": 0,
+                  "variants": [
+                    {
+                      "name": "Strawberry",
+                      "priceIdr": "65000"
+                    },
+                    {
+                      "name": "Blueberry",
+                      "priceIdr": "65000"
+                    }
+                  ]
+                },
+                {
+                  "name": "MamaBear Kukis Almond Oat - Camilan Kaya Nutrisi untuk Ibu Menyusui Halal BPOM",
+                  "totalSold": 0,
+                  "variants": [
+                    {
+                      "name": "Choco Nut",
+                      "priceIdr": "80000"
+                    },
+                    {
+                      "name": "Choco Chip",
+                      "priceIdr": "80000"
+                    },
+                    {
+                      "name": "Cookies & Cream",
+                      "priceIdr": "80000"
+                    }
+                  ]
+                },
+                {
+                  "name": "MamaBear ASI Booster 30 Kapsul - Pelancar ASI Fenugreek Free Halal BPOM",
+                  "totalSold": 0,
+                  "variants": [
+                    {
+                      "name": "30 kapsul",
+                      "priceIdr": "100000"
+                    }
+                  ]
+                }
+              ]
+            },
+            "timestamp": "2026-06-09T16:25:01.080Z"
+          }

@@ -1,0 +1,156 @@
+info:
+  name: "[ADMIN] Get customers"
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/admin/customers?limit=2&page=1"
+  params:
+    - name: limit
+      value: "2"
+      type: query
+    - name: page
+      value: "1"
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: Success (200)
+    request:
+      url: "{{baseUrl}}/api/admin/customers?limit=2&page=1"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Returned 2 customers (page 1 of 2)"
+            ],
+            "data": {
+              "success": true,
+              "data": [
+                {
+                  "id": "d9492654-47c3-459f-849f-76defbd5fa72",
+                  "email": "budi.santoso@email.com",
+                  "name": "Budi Santoso",
+                  "phone": "085678901234",
+                  "role": "USER",
+                  "isVerified": true,
+                  "createdAt": "2026-06-11T15:01:06.323Z",
+                  "updatedAt": "2026-06-12T00:53:53.063Z",
+                  "totalOrders": 3,
+                  "totalSpent": 245000,
+                  "averageOrderValue": 81667,
+                  "lastOrderDate": "2026-06-10T10:30:00.000Z"
+                },
+                {
+                  "id": "234657ea-5641-4824-a9f8-a933c4f18b29",
+                  "email": "rina.wati@email.com",
+                  "name": "Rina Wati",
+                  "phone": "082112345678",
+                  "role": "USER",
+                  "isVerified": false,
+                  "createdAt": "2026-06-11T15:01:06.321Z",
+                  "updatedAt": "2026-06-11T15:01:06.321Z",
+                  "totalOrders": 0,
+                  "totalSpent": 0,
+                  "averageOrderValue": 0,
+                  "lastOrderDate": null
+                }
+              ],
+              "pagination": {
+                "page": 1,
+                "limit": 2,
+                "totalItems": 4,
+                "totalPages": 2,
+                "hasNextPage": true,
+                "hasPrevPage": false
+              }
+            },
+            "timestamp": "2026-06-12T07:06:41.334Z"
+          }
+  - name: With Search & Filter (200)
+    request:
+      url: "{{baseUrl}}/api/admin/customers?search=budi&isVerified=true&sortBy=name&sortOrder=asc&limit=10"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Returned 1 customers (page 1 of 1)"
+            ],
+            "data": {
+              "success": true,
+              "data": [
+                {
+                  "id": "d9492654-47c3-459f-849f-76defbd5fa72",
+                  "email": "budi.santoso@email.com",
+                  "name": "Budi Santoso",
+                  "phone": "085678901234",
+                  "role": "USER",
+                  "isVerified": true,
+                  "createdAt": "2026-06-11T15:01:06.323Z",
+                  "updatedAt": "2026-06-12T00:53:53.063Z",
+                  "totalOrders": 3,
+                  "totalSpent": 245000,
+                  "averageOrderValue": 81667,
+                  "lastOrderDate": "2026-06-10T10:30:00.000Z"
+                }
+              ],
+              "pagination": {
+                "page": 1,
+                "limit": 10,
+                "totalItems": 1,
+                "totalPages": 1,
+                "hasNextPage": false,
+                "hasPrevPage": false
+              }
+            },
+            "timestamp": "2026-06-12T07:06:41.334Z"
+          }
+  - name: Unauthorized (401)
+    request:
+      url: "{{baseUrl}}/api/admin/customers"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 401,
+            "message": [
+              "Unauthorized"
+            ],
+            "data": null,
+            "timestamp": "2026-06-12T07:06:41.334Z"
+          }

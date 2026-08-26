@@ -1,0 +1,74 @@
+info:
+  name: "[ADMIN] Export customers CSV"
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/admin/customers/export"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/admin/customers/export"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "text/csv; charset=utf-8"
+        - name: Content-Disposition
+          value: "attachment; filename=\"customers-export-2026-06-12.csv\""
+      body:
+        type: text
+        data: |-
+          ID,Name,Email,Phone,Verified,Total Orders,Total Spent (IDR),Avg Order Value (IDR),Last Order Date,Registered At
+          d9492654-47c3-459f-849f-76defbd5fa72,Budi Santoso,budi.santoso@email.com,085678901234,Yes,0,0,0,,2026-06-11T15:01:06.323Z
+          234657ea-5641-4824-a9f8-a933c4f18b29,Rina Wati,rina.wati@email.com,082112345678,No,0,0,0,,2026-06-11T15:01:06.321Z
+  - name: "With Filters (200)"
+    request:
+      url: "{{baseUrl}}/api/admin/customers/export?search=budi&isVerified=true"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "text/csv; charset=utf-8"
+        - name: Content-Disposition
+          value: "attachment; filename=\"customers-export-2026-06-12.csv\""
+      body:
+        type: text
+        data: |-
+          ID,Name,Email,Phone,Verified,Total Orders,Total Spent (IDR),Avg Order Value (IDR),Last Order Date,Registered At
+          d9492654-47c3-459f-849f-76defbd5fa72,Budi Santoso,budi.santoso@email.com,085678901234,Yes,0,0,0,,2026-06-11T15:01:06.323Z
+  - name: "Unauthorized (401)"
+    request:
+      url: "{{baseUrl}}/api/admin/customers/export"
+      method: GET
+    response:
+      status: 401
+      statusText: "Unauthorized"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 401,
+            "message": [
+              "Unauthorized"
+            ],
+            "data": null,
+            "timestamp": "2026-06-12T07:06:41.334Z"
+          }

@@ -1,0 +1,88 @@
+info:
+  name: Update cart item
+  type: http
+  seq: 27
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/api/cart/items/{{cartItemId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "quantity": 3
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        bru.setNextRequest('Delete cart item');
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/cart/items/item-uuid"
+      method: PATCH
+      body:
+        type: json
+        data: |-
+          {
+            "quantity": 3
+          }
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Cart item updated successfully"
+            ],
+            "data": {
+              "id": "item-uuid",
+              "quantity": 3
+            },
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }
+  - name: "Validation Error (400)"
+    request:
+      url: "{{baseUrl}}/api/cart/items/item-uuid"
+      method: PATCH
+      body:
+        type: json
+        data: |-
+          {
+            "quantity": 0
+          }
+    response:
+      status: 400
+      statusText: "Bad Request"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 400,
+            "message": [
+              "quantity must not be less than 1"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }

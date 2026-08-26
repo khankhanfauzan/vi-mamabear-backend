@@ -1,0 +1,72 @@
+info:
+  name: "[ADMIN] Export orders CSV"
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/admin/order/export"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/admin/order/export"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "text/csv; charset=utf-8"
+        - name: Content-Disposition
+          value: "attachment; filename=\"orders-export-2026-06-12.csv\""
+      body:
+        type: text
+        data: |-
+          Order ID,Status,Customer Name,Customer Email,Customer Phone,Items,Subtotal (IDR),Shipping Cost (IDR),Total (IDR),Payment Method,Courier,Tracking Number,Shipping Address,Created At
+          019eb26a-12fb-734c-944d-3c0ffcdd6bf3,PAYMENT_PAID,Budi Santoso,budi.santoso@email.com,085678901234,MamaBear ASI Booster 30 Kapsul (30 kapsul) x1,100000,15000,115000,gopay,jne,,Budi Santoso - 085678901234 - Jl. Merdeka No. 10 Jakarta Pusat,2026-06-10T10:30:00.000Z
+  - name: "With Filters (200)"
+    request:
+      url: "{{baseUrl}}/api/admin/order/export?status=PAYMENT_PAID&startDate=2026-06-01&endDate=2026-06-12"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "text/csv; charset=utf-8"
+        - name: Content-Disposition
+          value: "attachment; filename=\"orders-export-2026-06-12.csv\""
+      body:
+        type: text
+        data: |-
+          Order ID,Status,Customer Name,Customer Email,Customer Phone,Items,Subtotal (IDR),Shipping Cost (IDR),Total (IDR),Payment Method,Courier,Tracking Number,Shipping Address,Created At
+  - name: "Unauthorized (401)"
+    request:
+      url: "{{baseUrl}}/api/admin/order/export"
+      method: GET
+    response:
+      status: 401
+      statusText: "Unauthorized"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 401,
+            "message": [
+              "Unauthorized"
+            ],
+            "data": null,
+            "timestamp": "2026-06-12T07:15:00.000Z"
+          }

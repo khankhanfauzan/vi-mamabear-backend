@@ -1,0 +1,35 @@
+$kind: http-request
+url: "{{baseUrl}}/users/{{createdUserId}}"
+method: DELETE
+preRequestScript: |-
+  // If we don't have an ID but have an email, lookup the user via GET /users
+  if (!pm.environment.get("createdUserId") && pm.environment.get("createdUserEmail")) {
+    pm.sendRequest({
+      url: pm.environment.get("baseUrl") + '/users',
+      method: 'GET',
+      header: { 'Content-Type': 'application/json' }
+    }, function (err, res) {
+      if (!err && res && res.json) {
+        const users = res.json();
+        if (Array.isArray(users)) {
+          const found = users.find(u => u.email === pm.environment.get("createdUserEmail"));
+          if (found && (found.id || found.userId)) {
+            pm.environment.set("createdUserId", found.id || found.userId);
+          }
+        }
+      }
+    });
+  }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 200 or 204 or 404", function () {
+        pm.response.to.have.status.oneOf([200, 204, 404]);
+      });
+
+      // cleanup env vars
+      if (pm.environment.get("createdUserId")) pm.environment.unset("createdUserId");
+      if (pm.environment.get("createdUserEmail")) pm.environment.unset("createdUserEmail");
+      if (pm.environment.get("verificationToken")) pm.environment.unset("verificationToken");
+    language: text/javascript
+order: 9999

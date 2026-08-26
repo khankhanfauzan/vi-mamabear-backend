@@ -1,0 +1,53 @@
+info:
+  name: Get cart
+  type: http
+  seq: 16
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/cart"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        bru.setNextRequest('Get cart totals');
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200) - Empty Cart"
+    request:
+      url: "{{baseUrl}}/api/cart"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "No message specified"
+            ],
+            "data": {
+              "id": "019e5f85-8d7b-777e-a54f-477aa8702037",
+              "userId": null,
+              "sessionId": "eb0d7be3-21e1-49b2-8862-a46add8ecf5e",
+              "createdAt": "2026-05-25T14:24:08.571Z",
+              "updatedAt": "2026-05-25T14:24:08.571Z",
+              "expiresAt": "2026-06-01T14:24:08.570Z",
+              "items": []
+            },
+            "timestamp": "2026-05-25T14:24:08.579Z"
+          }

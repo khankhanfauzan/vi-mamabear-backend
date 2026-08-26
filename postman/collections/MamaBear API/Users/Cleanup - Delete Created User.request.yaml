@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/users/{{createdUserId}}"
+method: DELETE
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 200 or 204", function () {
+        pm.response.to.have.status.oneOf([200, 204]);
+      });
+
+      if (pm.environment.get("createdUserId")) {
+        pm.environment.unset("createdUserId");
+      }
+    language: text/javascript
+order: 9999

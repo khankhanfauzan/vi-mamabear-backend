@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/users/{{userId}}"
+method: PATCH
+headers:
+  Content-Type: application/json
+pathVariables:
+  id: "{{userId}}"
+body:
+  type: json
+  content: |-
+    {
+      "name": "Updated Name",
+      "phone": "081234567891"
+    }
+order: 4000

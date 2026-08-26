@@ -1,0 +1,122 @@
+info:
+  name: Update user
+  type: http
+  seq: 51
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/api/admin/users/{{userId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "John Doe (Updated)"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        bru.setNextRequest('Update variant');
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/admin/users/fbf8fb32-effd-4374-8689-a3d598540aa1"
+      method: PATCH
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Updated Capture User"
+          }
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "User updated successfully"
+            ],
+            "data": {
+              "id": "fbf8fb32-effd-4374-8689-a3d598540aa1",
+              "email": "test-capture@example.com",
+              "name": "Updated Capture User",
+              "phone": "081234567890",
+              "role": "USER",
+              "isVerified": false,
+              "createdAt": "2026-05-25T14:30:00.000Z",
+              "updatedAt": "2026-05-25T14:31:00.000Z"
+            },
+            "timestamp": "2026-05-25T14:31:00.000Z"
+          }
+  - name: "Not Found (500)"
+    request:
+      url: "{{baseUrl}}/api/admin/users/00000000-0000-0000-0000-000000000000"
+      method: PATCH
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Test"
+          }
+    response:
+      status: 500
+      statusText: "Internal Server Error"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 500,
+            "message": [
+              "Internal server error"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }
+  - name: "Unauthorized (401)"
+    request:
+      url: "{{baseUrl}}/api/admin/users/53ff9709-69e4-4aba-a02b-4955381f5a1c"
+      method: PATCH
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Test"
+          }
+    response:
+      status: 401
+      statusText: "Unauthorized"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 401,
+            "message": [
+              "Unauthorized"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }

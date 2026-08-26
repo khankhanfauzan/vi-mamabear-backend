@@ -1,0 +1,115 @@
+info:
+  name: Register
+  type: http
+  seq: 19
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/auth/register"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "user@email.com",
+        "password": "password123",
+        "name": "Siti Rahayu",
+        "phone": "081234567890"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: Success (201)
+    request:
+      url: "{{baseUrl}}/api/auth/register"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "email": "user@email.com",
+            "password": "password123",
+            "name": "Test User",
+            "phone": "081234567890"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 201,
+            "message": ["Created"],
+            "data": {
+              "message": "Register success, check your email to verify"
+            },
+            "timestamp": "2026-01-01T00:00:00.000Z"
+          }
+  - name: Email Already Exists (400)
+    request:
+      url: "{{baseUrl}}/api/auth/register"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "email": "existing@email.com",
+            "password": "password123",
+            "name": "Test User",
+            "phone": "081234567890"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 400,
+            "message": ["Email already exist"],
+            "data": null,
+            "timestamp": "2026-01-01T00:00:00.000Z"
+          }
+  - name: Validation Error (400)
+    request:
+      url: "{{baseUrl}}/api/auth/register"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "email": "not-an-email",
+            "password": "short",
+            "name": "",
+            "phone": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 400,
+            "message": ["email must be an email", "password must be longer than or equal to 8 characters", "name must not be empty", "phone must not be empty"],
+            "data": null,
+            "timestamp": "2026-01-01T00:00:00.000Z"
+          }

@@ -1,0 +1,90 @@
+info:
+  name: Upload images
+  type: http
+  seq: 41
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/admin/upload/images"
+  body:
+    type: multipartForm
+    data:
+      - name: images
+        type: file
+        value: /path/to/image1.jpg
+      - name: images
+        type: file
+        value: /path/to/image2.jpg
+      - name: productId
+        type: text
+        value: "1"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (201)"
+    request:
+      url: "{{baseUrl}}/api/admin/upload/images"
+      method: POST
+    response:
+      status: 201
+      statusText: "Created"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 201,
+            "message": [
+              "Images uploaded successfully"
+            ],
+            "data": [
+              {
+                "id": 1,
+                "productId": 1,
+                "variantId": null,
+                "imageUrl": "https://res.cloudinary.com/example/image/upload/v123/image1.jpg",
+                "sortOrder": 1,
+                "altText": null
+              },
+              {
+                "id": 2,
+                "productId": 1,
+                "variantId": null,
+                "imageUrl": "https://res.cloudinary.com/example/image/upload/v123/image2.jpg",
+                "sortOrder": 2,
+                "altText": null
+              }
+            ],
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }
+  - name: "Unauthorized (401)"
+    request:
+      url: "{{baseUrl}}/api/admin/upload/images"
+      method: POST
+    response:
+      status: 401
+      statusText: "Unauthorized"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 401,
+            "message": [
+              "Unauthorized"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }

@@ -1,0 +1,51 @@
+info:
+  name: Get setting by key
+  type: http
+  seq: 32
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/admin/settings/{{settingKey}}"
+  headers:
+    - name: Authorization
+      value: Bearer {{adminToken}}
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: Success (200)
+    request:
+      url: "{{baseUrl}}/api/admin/settings/site_name"
+      method: GET
+      headers:
+        - name: Authorization
+          value: Bearer {{adminToken}}
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": ["Found setting"],
+            "data": {
+              "id": 1,
+              "key": "site_name",
+              "value": "Mamabear | Untuk Mama",
+              "type": "string",
+              "description": "Public site name",
+              "createdAt": "2026-05-25T14:23:11.448Z",
+              "updatedAt": "2026-05-25T14:23:11.448Z"
+            },
+            "timestamp": "2026-05-25T14:24:08.658Z"
+          }

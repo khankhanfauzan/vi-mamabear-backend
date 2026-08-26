@@ -1,0 +1,154 @@
+info:
+  name: "[ADMIN] Get orders"
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/admin/order?limit=20&page=1"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/admin/order?limit=2&page=1"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Returned 2 orders (page 1 of 3)"
+            ],
+            "data": {
+              "success": true,
+              "data": [
+                {
+                  "id": "019eb26a-12fb-734c-944d-3c0ffcdd6bf3",
+                  "userId": "d9492654-47c3-459f-849f-76defbd5fa72",
+                  "status": "PAYMENT_PAID",
+                  "notes": null,
+                  "subtotalIdr": 100000,
+                  "taxIdr": 0,
+                  "shippingCostIdr": 15000,
+                  "courierName": "jne",
+                  "courierCode": "jne",
+                  "shippingMethod": "REG",
+                  "trackingNumber": null,
+                  "paymentMethod": "gopay",
+                  "createdAt": "2026-06-10T10:30:00.000Z",
+                  "updatedAt": "2026-06-10T10:31:00.000Z",
+                  "user": {
+                    "id": "d9492654-47c3-459f-849f-76defbd5fa72",
+                    "name": "Budi Santoso",
+                    "email": "budi.santoso@email.com",
+                    "phone": "085678901234"
+                  },
+                  "orderItems": [
+                    {
+                      "id": "019eb26a-12fb-734c-944d-3c0ffcdd6bf4",
+                      "orderId": "019eb26a-12fb-734c-944d-3c0ffcdd6bf3",
+                      "productId": 5,
+                      "variantId": 14,
+                      "quantity": 1,
+                      "price": "100000.00",
+                      "product": {
+                        "id": 5,
+                        "name": "MamaBear ASI Booster 30 Kapsul",
+                        "slug": "mamabear-asi-booster-30-kapsul"
+                      },
+                      "variant": {
+                        "id": 14,
+                        "name": "30 kapsul",
+                        "priceIdr": "100000"
+                      }
+                    }
+                  ],
+                  "shippingAddress": {
+                    "id": 1,
+                    "name": "Budi Santoso",
+                    "phone": "085678901234",
+                    "completeAddress": "Jl. Merdeka No. 10, Jakarta Pusat"
+                  }
+                }
+              ],
+              "pagination": {
+                "page": 1,
+                "limit": 2,
+                "totalItems": 5,
+                "totalPages": 3,
+                "hasNextPage": true,
+                "hasPrevPage": false
+              }
+            },
+            "timestamp": "2026-06-12T07:15:00.000Z"
+          }
+  - name: "With Filters (200)"
+    request:
+      url: "{{baseUrl}}/api/admin/order?status=PAYMENT_PAID&sortBy=createdAt&sortOrder=desc&limit=10"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Returned 2 orders (page 1 of 1)"
+            ],
+            "data": {
+              "success": true,
+              "data": [],
+              "pagination": {
+                "page": 1,
+                "limit": 10,
+                "totalItems": 0,
+                "totalPages": 0,
+                "hasNextPage": false,
+                "hasPrevPage": false
+              }
+            },
+            "timestamp": "2026-06-12T07:15:00.000Z"
+          }
+  - name: "Unauthorized (401)"
+    request:
+      url: "{{baseUrl}}/api/admin/order"
+      method: GET
+    response:
+      status: 401
+      statusText: "Unauthorized"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 401,
+            "message": [
+              "Unauthorized"
+            ],
+            "data": null,
+            "timestamp": "2026-06-12T07:15:00.000Z"
+          }

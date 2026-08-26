@@ -1,0 +1,63 @@
+opencollection: 1.0.0
+
+info:
+  name: mamabear-backend
+config:
+  proxy:
+    inherit: true
+    config:
+      protocol: http
+      hostname: ""
+      port: ""
+      auth:
+        username: ""
+        password: ""
+      bypassProxy: ""
+
+request:
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjN2Q3MWQ4My02MmMzLTRhOTMtYTAxMC00YzdmMDIzMmIyNmQiLCJlbWFpbCI6ImFkbWluQG1hbWFiZWFyLmlkIiwicm9sZSI6IkFETUlOIiwibmFtZSI6IkFkbWluIE1hbWFCZWFyIiwicGhvbmUiOiIwODEyMDAwMDExMTEiLCJpYXQiOjE3ODE2MjQ4NDcsImV4cCI6MTc4MTYyNTc0N30.lJFzFAdjPKZjMLt6unQ3NsaZyzKGlWyvkTmL9nchAME
+  variables:
+    - name: baseUrl
+      value: http://localhost:3000
+    - name: jwtToken
+      value: ""
+    - name: refreshToken
+      value: ""
+    - name: productSlug
+      value: ""
+    - name: productId
+      value: "42"
+    - name: variantId
+      value: "2"
+    - name: reviewId
+      value: ""
+    - name: categorySlug
+      value: ""
+    - name: categoryId
+      value: ""
+    - name: userId
+      value: ""
+    - name: highlightId
+      value: ""
+    - name: imageId
+      value: ""
+    - name: cartItemId
+      value: ""
+    - name: cartId
+      value: ""
+    - name: orderId
+      value: ""
+    - name: provinceId
+      value: "1"
+    - name: cityId
+      value: "1"
+    - name: districtId
+      value: "1"
+bundled: false
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git

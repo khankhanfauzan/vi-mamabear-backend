@@ -1,0 +1,46 @@
+info:
+  name: AddMyAddress
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/me/addresses/"
+  body:
+    type: form-urlencoded
+    data:
+      - name: name
+        value: Kevin ADMIN
+      - name: phone
+        value: "0856123456"
+      - name: provinceId
+        value: "1"
+      - name: provinceName
+        value: NUSA TENGGARA BARAT (NTB)
+      - name: cityId
+        value: "1"
+      - name: cityName
+        value: MATARAM
+      - name: districtId
+        value: "3"
+      - name: districtName
+        value: CAKRANEGARA
+      - name: subdistrictId
+        value: "20"
+      - name: subdistrictName
+        value: CAKRANEGARA BARAT
+      - name: postalCode
+        value: "83239"
+      - name: road
+        value: Jl. Abu Dhabi Sejahtera Selamanya
+      - name: detail
+        value: Sebelah Indomaret besar (bukan indomaret kecil)
+      - name: usedFor
+        value: RUMAH2
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

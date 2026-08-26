@@ -1,0 +1,85 @@
+info:
+  name: Get categories
+  type: http
+  seq: 12
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/categories"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (body && body.data && body.data.length > 0) {
+          bru.setVar('categorySlug', body.data[0].slug || '');
+          bru.setVar('categoryId', body.data[0].id || '');
+        }
+        bru.setNextRequest('Get highlights');
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/categories"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Found 2 categories"
+            ],
+            "data": [
+              {
+                "id": 1,
+                "name": "Maternity Supplies",
+                "slug": "maternity-supplies",
+                "description": "Makanan & minuman untuk ibu menyusui",
+                "isActive": true,
+                "sortOrder": 1,
+                "createdAt": "2026-05-25T14:13:29.188Z",
+                "updatedAt": "2026-05-25T14:13:29.188Z",
+                "imageUrl": null,
+                "publicId": "62bc13b1-20ff-44fe-9d52-bea934374a31",
+                "altText": null,
+                "width": null,
+                "height": null,
+                "fileSize": null,
+                "format": null
+              },
+              {
+                "id": 2,
+                "name": "ASI Booster",
+                "slug": "asi-booster",
+                "description": "Produk pelancar & peningkat ASI",
+                "isActive": true,
+                "sortOrder": 2,
+                "createdAt": "2026-05-25T14:13:29.193Z",
+                "updatedAt": "2026-05-25T14:13:29.193Z",
+                "imageUrl": null,
+                "publicId": "2fdaf6e5-f02a-4d16-8011-77fff8fb28e7",
+                "altText": null,
+                "width": null,
+                "height": null,
+                "fileSize": null,
+                "format": null
+              }
+            ],
+            "timestamp": "2026-05-25T14:24:08.639Z"
+          }

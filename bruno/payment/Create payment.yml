@@ -1,0 +1,28 @@
+info:
+  name: Create payment
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/payment/create"
+  body:
+    type: json
+    data: |-
+      {
+          "orderId": "019eb265-b1ff-70ba-88ae-2b4bef12bca2",
+          "subtotal": 100000,
+          "customerDetails": {
+              "firstName": "John",
+              "lastName": "Doe",
+              "email": "john@example.com",
+              "phone": "081234567890"
+          }
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

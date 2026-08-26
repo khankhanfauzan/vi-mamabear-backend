@@ -1,0 +1,92 @@
+info:
+  name: Update courier
+  type: http
+  seq: 33
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/api/cart/{{cartId}}/courier"
+  body:
+    type: json
+    data: |-
+      {
+        "shippingCostIdr": 15000,
+        "courierName": "JNE",
+        "courierCode": "jne",
+        "shippingMethod": "REG"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/cart/019e61f1-ea0e-7206-af15-9d60b78c1d0a/courier"
+      method: PATCH
+      body:
+        type: json
+        data: |-
+          {
+            "shippingCostIdr": 15000,
+            "courierName": "JNE",
+            "courierCode": "jne",
+            "shippingMethod": "REG"
+          }
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": ["Courier information updated successfully"],
+            "data": {
+              "id": "019e61f1-ea0e-7206-af15-9d60b78c1d0a",
+              "courierName": "JNE",
+              "courierCode": "jne",
+              "shippingMethod": "REG",
+              "shippingCostIdr": 15000
+            },
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }
+  - name: "Validation Error (400)"
+    request:
+      url: "{{baseUrl}}/api/cart/019e61f1-ea0e-7206-af15-9d60b78c1d0a/courier"
+      method: PATCH
+      body:
+        type: json
+        data: |-
+          {
+            "shippingCostIdr": "not-a-number"
+          }
+    response:
+      status: 400
+      statusText: "Bad Request"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 400,
+            "message": [
+              "shippingCostIdr must be a number",
+              "courierName should not be empty",
+              "courierCode should not be empty",
+              "shippingMethod should not be empty"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }

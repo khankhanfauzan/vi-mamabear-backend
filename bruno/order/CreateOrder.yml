@@ -1,0 +1,125 @@
+info:
+  name: CreateOrder
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/order"
+  body:
+    type: json
+    data: |-
+      {
+        "cartId" : "019ead28-57e4-75bd-876a-d09ef97e17a0",
+        "addressId": 1,
+        "notes": "Fast"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: Order success
+    request:
+      url: "{{baseUrl}}/api/order"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "cartId" : "019ead28-57e4-75bd-876a-d09ef97e17a0",
+            "addressId": 1,
+            "notes": "Fast"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: x-powered-by
+          value: Express
+        - name: vary
+          value: Origin
+        - name: access-control-allow-credentials
+          value: "true"
+        - name: content-type
+          value: application/json; charset=utf-8
+        - name: content-length
+          value: "1629"
+        - name: etag
+          value: W/"65d-O9mo8MZHX0MYYaMdh8/MuFhN8pA"
+        - name: date
+          value: Tue, 09 Jun 2026 16:20:11 GMT
+        - name: connection
+          value: keep-alive
+        - name: keep-alive
+          value: timeout=5
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 201,
+            "message": [
+              "Order 019ead2f-2f2b-7592-adfb-5ac93fa4265d created successfully"
+            ],
+            "data": {
+              "id": "019ead2f-2f2b-7592-adfb-5ac93fa4265d",
+              "userId": "f170e6cc-9057-4ae5-bbae-0cd374ccdddd",
+              "status": "PAYMENT_PENDING",
+              "receivedExpiresAt": null,
+              "notes": "Fast",
+              "subtotalIdr": 0,
+              "taxIdr": 0,
+              "shippingCostIdr": 0,
+              "courierName": null,
+              "courierCode": null,
+              "shippingMethod": null,
+              "trackingNumber": null,
+              "paymentMethod": null,
+              "createdAt": "2026-06-09T16:20:11.179Z",
+              "updatedAt": "2026-06-09T16:20:11.179Z",
+              "shippingAddress": {
+                "id": 1,
+                "orderId": "019ead2f-2f2b-7592-adfb-5ac93fa4265d",
+                "name": "Kevin ADMIN",
+                "phone": "0856123456",
+                "provinceId": 1,
+                "provinceName": "NUSA TENGGARA BARAT (NTB)",
+                "cityId": 1,
+                "cityName": "MATARAM",
+                "districtId": 3,
+                "districtName": "CAKRANEGARA",
+                "subdistrictId": 20,
+                "subdistrictName": "CAKRANEGARA BARAT",
+                "postalCode": "83239",
+                "road": "Jl. Abu Dhabi Sejahtera Selamanya",
+                "completeAddress": "Jl. Abu Dhabi Sejahtera Selamanya, CAKRANEGARA BARAT, CAKRANEGARA, MATARAM, 83239 - NUSA TENGGARA BARAT (NTB) | Note: Sebelah Indomaret besar (bukan indomaret kecil)",
+                "detail": "Sebelah Indomaret besar (bukan indomaret kecil)",
+                "usedFor": "RUMAH2"
+              },
+              "orderItems": [
+                {
+                  "product": {
+                    "name": "MamaBear AlmonMix Isi 6 Sachet - Minuman Serbuk dengan Almond - Kaya Nutrisi Untuk Ibu Menyusui BPOM HALAL",
+                    "slug": "mamabear-almonmix-isi-6-sachet"
+                  },
+                  "variant": {
+                    "name": "Choco Hazelnut",
+                    "stock": 100,
+                    "priceIdr": "80000",
+                    "images": [
+                      {
+                        "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1779384799/mamabear/AlmonMix/Choco-Hazelnut/AlmonMix-Choco-Hazelnut.png",
+                        "altText": "MamaBear AlmonMix Choco Hazelnut"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "timestamp": "2026-06-09T16:20:11.220Z"
+          }

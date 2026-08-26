@@ -1,0 +1,52 @@
+info:
+  name: UpdateMyAddress
+  type: http
+  seq: 5
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/me/addresses/{{id}}"
+  body:
+    type: form-urlencoded
+    data:
+      - name: name
+        value: Yodhaisme Unggul Pratama
+      - name: phone
+        value: "0856123456"
+      - name: provinceId
+        value: "1"
+      - name: provinceName
+        value: NUSA TENGGARA BARAT (NTB)
+      - name: cityId
+        value: "1"
+      - name: cityName
+        value: MATARAM
+      - name: districtId
+        value: "3"
+      - name: districtName
+        value: CAKRANEGARA
+      - name: subdistrictId
+        value: "20"
+      - name: subdistrictName
+        value: CAKRANEGARA BARAT
+      - name: postalCode
+        value: "83239"
+      - name: road
+        value: "Jl. Abu Dhabi Sejahtera Selamanya "
+      - name: detail
+        value: Sebelah rumah pak Bari
+      - name: usedFor
+        value: RUMAHAN
+        disabled: true
+  auth: inherit
+
+runtime:
+  variables:
+    - name: id
+      value: "1"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

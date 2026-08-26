@@ -1,0 +1,425 @@
+info:
+  name: sales
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/admin/reports/sales"
+  params:
+    - name: startDate
+      value: 2026-06-01
+      type: query
+      disabled: true
+    - name: endDate
+      value: 2026-06-21
+      type: query
+      disabled: true
+    - name: period
+      value: monthly
+      type: query
+      disabled: true
+    - name: status
+      value: COMPLETED
+      type: query
+      disabled: true
+    - name: categoryId
+      value: "1"
+      type: query
+      disabled: true
+    - name: productId
+      value: "1"
+      type: query
+      disabled: true
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: Success Date filter
+    request:
+      url: "{{baseUrl}}/api/admin/reports/sales?startDate=2026-06-01&endDate=2026-06-21"
+      method: GET
+      params:
+        - name: startDate
+          value: 2026-06-01
+          type: query
+        - name: endDate
+          value: 2026-06-21
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: x-powered-by
+          value: Express
+        - name: vary
+          value: Origin
+        - name: access-control-allow-credentials
+          value: "true"
+        - name: content-type
+          value: application/json; charset=utf-8
+        - name: content-length
+          value: "472"
+        - name: etag
+          value: W/"1d8-cjWz9HbIGwP5FxenBI5BECon/uo"
+        - name: date
+          value: Fri, 12 Jun 2026 07:51:30 GMT
+        - name: connection
+          value: keep-alive
+        - name: keep-alive
+          value: timeout=5
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Sales Report"
+            ],
+            "data": {
+              "totalRevenue": 480000,
+              "orderCount": 2,
+              "avgOrderValue": 240000,
+              "trends": [
+                {
+                  "period": "2026-06-09",
+                  "revenue": 160000,
+                  "orders": 1
+                },
+                {
+                  "period": "2026-06-11",
+                  "revenue": 320000,
+                  "orders": 1
+                }
+              ],
+              "topProducts": [
+                {
+                  "productId": 1,
+                  "productName": "MamaBear AlmonMix Isi 6 Sachet - Minuman Serbuk dengan Almond - Kaya Nutrisi Untuk Ibu Menyusui BPOM HALAL",
+                  "quantitySold": 6,
+                  "revenue": 480000
+                }
+              ]
+            },
+            "timestamp": "2026-06-12T07:51:30.127Z"
+          }
+  - name: "Success: period filter"
+    request:
+      url: "{{baseUrl}}/api/admin/reports/sales?period=monthly"
+      method: GET
+      params:
+        - name: startDate
+          value: 2026-06-01
+          type: query
+          disabled: true
+        - name: endDate
+          value: 2026-06-21
+          type: query
+          disabled: true
+        - name: period
+          value: monthly
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: x-powered-by
+          value: Express
+        - name: vary
+          value: Origin
+        - name: access-control-allow-credentials
+          value: "true"
+        - name: content-type
+          value: application/json; charset=utf-8
+        - name: content-length
+          value: "417"
+        - name: etag
+          value: W/"1a1-HlZ8YPpNAd6R537B00xC427RLD8"
+        - name: date
+          value: Fri, 12 Jun 2026 07:52:50 GMT
+        - name: connection
+          value: keep-alive
+        - name: keep-alive
+          value: timeout=5
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Sales Report"
+            ],
+            "data": {
+              "totalRevenue": 480000,
+              "orderCount": 2,
+              "avgOrderValue": 240000,
+              "trends": [
+                {
+                  "period": "2026-06",
+                  "revenue": 480000,
+                  "orders": 2
+                }
+              ],
+              "topProducts": [
+                {
+                  "productId": 1,
+                  "productName": "MamaBear AlmonMix Isi 6 Sachet - Minuman Serbuk dengan Almond - Kaya Nutrisi Untuk Ibu Menyusui BPOM HALAL",
+                  "quantitySold": 6,
+                  "revenue": 480000
+                }
+              ]
+            },
+            "timestamp": "2026-06-12T07:52:50.941Z"
+          }
+  - name: "Success: status filter"
+    request:
+      url: "{{baseUrl}}/api/admin/reports/sales?status=COMPLETED"
+      method: GET
+      params:
+        - name: startDate
+          value: 2026-06-01
+          type: query
+          disabled: true
+        - name: endDate
+          value: 2026-06-21
+          type: query
+          disabled: true
+        - name: period
+          value: monthly
+          type: query
+          disabled: true
+        - name: status
+          value: COMPLETED
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: x-powered-by
+          value: Express
+        - name: vary
+          value: Origin
+        - name: access-control-allow-credentials
+          value: "true"
+        - name: content-type
+          value: application/json; charset=utf-8
+        - name: content-length
+          value: "420"
+        - name: etag
+          value: W/"1a4-6CNWHVCQROHU7tmQBxuFqaXZmLk"
+        - name: date
+          value: Fri, 12 Jun 2026 07:54:04 GMT
+        - name: connection
+          value: keep-alive
+        - name: keep-alive
+          value: timeout=5
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Sales Report"
+            ],
+            "data": {
+              "totalRevenue": 160000,
+              "orderCount": 1,
+              "avgOrderValue": 160000,
+              "trends": [
+                {
+                  "period": "2026-06-09",
+                  "revenue": 160000,
+                  "orders": 1
+                }
+              ],
+              "topProducts": [
+                {
+                  "productId": 1,
+                  "productName": "MamaBear AlmonMix Isi 6 Sachet - Minuman Serbuk dengan Almond - Kaya Nutrisi Untuk Ibu Menyusui BPOM HALAL",
+                  "quantitySold": 2,
+                  "revenue": 160000
+                }
+              ]
+            },
+            "timestamp": "2026-06-12T07:54:04.960Z"
+          }
+  - name: "Success: productId filter"
+    request:
+      url: "{{baseUrl}}/api/admin/reports/sales?productId=1"
+      method: GET
+      params:
+        - name: startDate
+          value: 2026-06-01
+          type: query
+          disabled: true
+        - name: endDate
+          value: 2026-06-21
+          type: query
+          disabled: true
+        - name: period
+          value: monthly
+          type: query
+          disabled: true
+        - name: status
+          value: COMPLETED
+          type: query
+          disabled: true
+        - name: categoryId
+          value: "1"
+          type: query
+          disabled: true
+        - name: productId
+          value: "1"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: x-powered-by
+          value: Express
+        - name: vary
+          value: Origin
+        - name: access-control-allow-credentials
+          value: "true"
+        - name: content-type
+          value: application/json; charset=utf-8
+        - name: content-length
+          value: "472"
+        - name: etag
+          value: W/"1d8-xIIZW9Sa9jRFS/b9ScDQGtjsF4A"
+        - name: date
+          value: Fri, 12 Jun 2026 07:57:39 GMT
+        - name: connection
+          value: keep-alive
+        - name: keep-alive
+          value: timeout=5
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Sales Report"
+            ],
+            "data": {
+              "totalRevenue": 480000,
+              "orderCount": 2,
+              "avgOrderValue": 240000,
+              "trends": [
+                {
+                  "period": "2026-06-09",
+                  "revenue": 160000,
+                  "orders": 1
+                },
+                {
+                  "period": "2026-06-11",
+                  "revenue": 320000,
+                  "orders": 1
+                }
+              ],
+              "topProducts": [
+                {
+                  "productId": 1,
+                  "productName": "MamaBear AlmonMix Isi 6 Sachet - Minuman Serbuk dengan Almond - Kaya Nutrisi Untuk Ibu Menyusui BPOM HALAL",
+                  "quantitySold": 6,
+                  "revenue": 480000
+                }
+              ]
+            },
+            "timestamp": "2026-06-12T07:57:39.380Z"
+          }
+  - name: "Success: CategoryId filter"
+    request:
+      url: "{{baseUrl}}/api/admin/reports/sales?categoryId=1"
+      method: GET
+      params:
+        - name: startDate
+          value: 2026-06-01
+          type: query
+          disabled: true
+        - name: endDate
+          value: 2026-06-21
+          type: query
+          disabled: true
+        - name: period
+          value: monthly
+          type: query
+          disabled: true
+        - name: status
+          value: COMPLETED
+          type: query
+          disabled: true
+        - name: categoryId
+          value: "1"
+          type: query
+        - name: productId
+          value: "1"
+          type: query
+          disabled: true
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: x-powered-by
+          value: Express
+        - name: vary
+          value: Origin
+        - name: access-control-allow-credentials
+          value: "true"
+        - name: content-type
+          value: application/json; charset=utf-8
+        - name: content-length
+          value: "472"
+        - name: etag
+          value: W/"1d8-lr//kYSudmatxa0nCjI/NXc8y9A"
+        - name: date
+          value: Fri, 12 Jun 2026 07:58:24 GMT
+        - name: connection
+          value: keep-alive
+        - name: keep-alive
+          value: timeout=5
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Sales Report"
+            ],
+            "data": {
+              "totalRevenue": 480000,
+              "orderCount": 2,
+              "avgOrderValue": 240000,
+              "trends": [
+                {
+                  "period": "2026-06-09",
+                  "revenue": 160000,
+                  "orders": 1
+                },
+                {
+                  "period": "2026-06-11",
+                  "revenue": 320000,
+                  "orders": 1
+                }
+              ],
+              "topProducts": [
+                {
+                  "productId": 1,
+                  "productName": "MamaBear AlmonMix Isi 6 Sachet - Minuman Serbuk dengan Almond - Kaya Nutrisi Untuk Ibu Menyusui BPOM HALAL",
+                  "quantitySold": 6,
+                  "revenue": 480000
+                }
+              ]
+            },
+            "timestamp": "2026-06-12T07:58:24.556Z"
+          }

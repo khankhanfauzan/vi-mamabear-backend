@@ -1,0 +1,81 @@
+info:
+  name: Search suggestions
+  type: http
+  seq: 7
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/products/search/suggestions?q=mam"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        bru.setNextRequest('Get categories');
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/products/search/suggestions?q=mam"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Found 3 products matching query 'mam' with fuzzy search"
+            ],
+            "data": [
+              {
+                "name": "MamaBear ASI Booster 30 Kapsul",
+                "similarity": 0.04761905
+              },
+              {
+                "name": "MamaBear Teh Pelancar ASI Isi 20 Sachet",
+                "similarity": 0.039473683
+              },
+              {
+                "name": "MamaBear Kukis Almond Oat",
+                "similarity": 0.030303031
+              }
+            ],
+            "timestamp": "2026-05-26T02:14:51.062Z"
+          }
+  - name: "Validation Error (400)"
+    request:
+      url: "{{baseUrl}}/api/products/search/suggestions?q=mam&limit=0&minChars=2"
+      method: GET
+    response:
+      status: 400
+      statusText: "Bad Request"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 400,
+            "message": [
+              "limit must not be less than 1",
+              "limit must be a number conforming to the specified constraints"
+            ],
+            "data": null,
+            "timestamp": "2026-05-26T02:14:51.070Z"
+          }

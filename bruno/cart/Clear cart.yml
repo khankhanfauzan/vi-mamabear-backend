@@ -1,0 +1,48 @@
+info:
+  name: Clear cart
+  type: http
+  seq: 31
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/api/cart"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        bru.setNextRequest(null);
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/cart"
+      method: DELETE
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Cart cleared successfully"
+            ],
+            "data": {
+              "id": "019e5f85-8d7b-777e-a54f-477aa8702037",
+              "items": []
+            },
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }

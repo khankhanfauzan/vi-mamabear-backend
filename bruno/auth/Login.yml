@@ -1,0 +1,167 @@
+info:
+  name: Login
+  type: http
+  seq: 18
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/auth/login"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "admin@mamabear.id",
+        "password": "admin"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (res.getStatus() === 201 && body?.data?.accessToken) {
+          bru.setVar('jwtToken', body.data.accessToken);
+          bru.setVar('refreshToken', body.data.refreshToken);
+        }
+        bru.deleteVar('phase');
+        bru.deleteVar('productSlug');
+        bru.deleteVar('productId');
+        bru.deleteVar('variantId');
+        bru.deleteVar('reviewId');
+        bru.deleteVar('categorySlug');
+        bru.deleteVar('categoryId');
+        bru.deleteVar('userId');
+        bru.deleteVar('highlightId');
+        bru.deleteVar('imageId');
+        bru.deleteVar('cartItemId');
+        bru.setVar('runId', Date.now());
+        bru.setNextRequest('Get products (Pagination)');
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: Success (201)
+    request:
+      url: "{{baseUrl}}/api/auth/login"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "email": "admin@mamabear.id",
+            "password": "admin"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 201,
+            "message": [
+              "Login successful"
+            ],
+            "data": {
+              "accessToken": "eyJhbGci...",
+              "refreshToken": "eyJhbGci..."
+            },
+            "timestamp": "2026-05-26T02:14:50.891Z"
+          }
+  - name: Invalid Password (400)
+    request:
+      url: "{{baseUrl}}/api/auth/login"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "email": "admin@mamabear.id",
+            "password": "wrongpassword"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 400,
+            "message": [
+              "Invalid password"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T14:24:28.207Z"
+          }
+  - name: Email Not Found (400)
+    request:
+      url: "{{baseUrl}}/api/auth/login"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "email": "nonexistent@email.com",
+            "password": "password123"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 400,
+            "message": [
+              "Email not found"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T14:24:28.217Z"
+          }
+  - name: Validation Error (400)
+    request:
+      url: "{{baseUrl}}/api/auth/login"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "email": "not-an-email",
+            "password": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 400,
+            "message": [
+              "email must be an email",
+              "password should not be empty"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T14:24:28.225Z"
+          }

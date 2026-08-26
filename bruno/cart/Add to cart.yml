@@ -1,0 +1,102 @@
+info:
+  name: Add to cart
+  type: http
+  seq: 26
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/cart/items"
+  body:
+    type: json
+    data: |-
+      {
+        "productId": {{productId}},
+        "variantId": {{variantId}},
+        "quantity": 2
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (body && body.data) {
+          bru.setVar('cartItemId', body.data.id || '');
+        }
+        bru.setNextRequest('Get cart');
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: Success (201)
+    request:
+      url: "{{baseUrl}}/api/cart/items"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productId": {{productId}},
+            "variantId": {{variantId}},
+            "quantity": 2
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 201,
+            "message": [
+              "No message specified"
+            ],
+            "data": {
+              "id": "019e61f1-ea25-761c-91f9-02da6fc5aeb5",
+              "cartId": "019e61f1-ea0e-7206-af15-9d60b78c1d0a",
+              "productId": 1,
+              "variantId": 1,
+              "quantity": 2,
+              "price": "80000",
+              "createdAt": "2026-05-26T01:41:44.613Z"
+            },
+            "timestamp": "2026-05-26T01:41:44.617Z"
+          }
+  - name: Validation Error (400)
+    request:
+      url: "{{baseUrl}}/api/cart/items"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productId": "not-a-number"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 400,
+            "message": [
+              "productId must be a number",
+              "quantity must not be less than 1"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }

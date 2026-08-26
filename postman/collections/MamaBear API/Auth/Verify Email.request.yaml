@@ -1,0 +1,28 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/verify-email/{{verificationToken}}"
+method: GET
+pathVariables:
+  token: "{{verificationToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      // --- Success ---
+      pm.test("Status is 200", function () {
+        pm.response.to.have.status(200);
+      });
+
+      pm.test("Response has a message", function () {
+        const json = pm.response.json();
+        pm.expect(json).to.have.property("message").that.is.a("string").and.not.empty;
+      });
+
+      // --- Failure ---
+      pm.test("No error field on success", function () {
+        const json = pm.response.json();
+        pm.expect(json).to.not.have.property("error");
+      });
+
+      // --- Cleanup ---
+      pm.environment.unset("verificationToken");
+    language: text/javascript
+order: 7000

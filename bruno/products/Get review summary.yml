@@ -1,0 +1,74 @@
+info:
+  name: Get review summary
+  type: http
+  seq: 11
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/products/{{productSlug}}/reviews/summary"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        bru.setNextRequest('Get category by slug');
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/products/mamabear-almonmix-isi-6-sachet/reviews/summary"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Review summary of product mamabear-almonmix-isi-6-sachet obtained"
+            ],
+            "data": {
+              "average": 5,
+              "count_5": 1,
+              "count_4": 0,
+              "count_3": 0,
+              "count_2": 0,
+              "count_1": 0
+            },
+            "timestamp": "2026-05-25T14:24:08.629Z"
+          }
+  - name: "Not Found (404)"
+    request:
+      url: "{{baseUrl}}/api/products/nonexistent-xyz/reviews/summary"
+      method: GET
+    response:
+      status: 404
+      statusText: "Not Found"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 404,
+            "message": [
+              "Cannot find product with slug nonexistent-xyz"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T14:24:28.261Z"
+          }

@@ -1,0 +1,30 @@
+info:
+  name: Get endpoint root
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200) - Swagger UI"
+    request:
+      url: "{{baseUrl}}/api/"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "text/html; charset=utf-8"
+      body:
+        type: text
+        data: "Returns Swagger UI HTML page at /api/"

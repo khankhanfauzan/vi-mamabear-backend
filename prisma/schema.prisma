@@ -1,0 +1,370 @@
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["postgresqlExtensions", "fullTextSearchPostgres"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPERADMIN
+}
+
+model User {
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                   String    @unique
+  hashedPassword          String
+  name                    String
+  phone                   String
+  role                    Role      @default(USER)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime? @updatedAt
+  reviews                 Review[]
+  isVerified              Boolean   @default(false)
+  isBlocked               Boolean   @default(false)
+  verificationToken       String?
+  verificationTokenExpiry DateTime?
+  resetToken              String?
+  resetTokenExpiry        DateTime?
+  refreshToken            String?
+  refreshTokenExpiry      DateTime?
+  carts                   Cart[]
+  orders                  Order[]
+  address                 Address[]
+  activityLogs            AdminActivityLog[]
+}
+
+model Product {
+  id                Int                          @id @default(autoincrement())
+  name              String
+  slug              String                       @unique
+  isActive          Boolean                      @default(true)
+  totalSold Int @default(0)
+  categoryId        Int?
+  highlightId       Int?
+  images            Image[]
+  variants          ProductVariant[]
+  reviews           Review[]
+  tags              String[]                     @default([])
+  description       String?
+  ingredients       String?
+  usageInstructions String?
+  embedding         Unsupported("vector(1024)")?
+  cartItems         CartItem[]
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime?                    @updatedAt
+
+  inOrderItems      OrderItem[]
+
+  category          Category?                    @relation(fields: [categoryId], references: [id])
+  highlight         Highlight?                   @relation(fields: [highlightId], references: [id])
+  metaTitle   String?
+  metaDescription String?
+}
+
+model Image {
+  id        Int      @id @default(autoincrement())
+
+  publicId  String   @unique
+
+  productId Int?
+  variantId Int?
+  reviewId Int?
+  categoryId Int?
+
+  // metadata
+  imageUrl String @default("https://placehold.co/600x400")
+  sortOrder Int
+  altText   String?
+  width     Int?
+  height    Int?
+  fileSize  Int?
+  format    String?
+
+  product   Product?         @relation(fields:  [productId],   references:  [id],  onDelete:  SetNull)
+  variant   ProductVariant?  @relation(fields:  [variantId],   references:  [id],  onDelete:  SetNull)
+  review    Review?          @relation(fields:  [reviewId],    references:  [id],  onDelete:  SetNull)
+  category  Category?        @relation(fields:  [categoryId],  references:  [id],  onDelete:  SetNull)
+}
+
+model Discount {
+  id        Int            @id @default(autoincrement())
+  variantId Int            @unique
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  amount    Decimal        @db.Decimal(12, 2)
+  isPercent Boolean        @default(false)
+  startedAt DateTime       @default(now())
+  endsAt    DateTime
+}
+
+model ProductVariant {
+  id         Int            @id @default(autoincrement())
+  productId  Int
+  name       String
+  images     Image[]
+  priceIdr   Decimal        @db.Decimal(10, 2)
+  discount   Discount?
+  weightG    Int
+  sku        String?
+  stock      Int            @default(0)
+  sortOrder  Int            @default(0)
+  cartItems  CartItem[]
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime?      @updatedAt
+  orderItems OrderItem[]
+
+  product    Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  @@unique([productId, sortOrder], name: "variantCompositeIdentifier")
+}
+
+model Highlight {
+  id          Int       @id @default(autoincrement())
+  name        String
+  slug        String    @unique
+  description String?
+  isActive    Boolean   @default(true)
+  products    Product[]
+  metaTitle   String?
+  metaDescription String?
+}
+
+model Category {
+  id          Int     @id @default(autoincrement())
+  name        String
+  slug        String  @unique
+  description String 
+  metaTitle   String?
+  metaDescription String?
+
+  isActive  Boolean   @default(true)
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+  images    Image[]
+}
+
+model Review {
+  id         Int     @id @default(autoincrement())
+  title      String
+  reviewerId String  @db.Uuid
+  productId  Int
+
+  rating      Float    @default(0.0)
+  numUpvotes  Int?     @default(0)
+  description String
+  images      Image[]
+
+  createdAt DateTime @default(now())
+
+  reviewer   User    @relation(fields: [reviewerId], references: [id], onDelete: SetNull)
+  product    Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Cart {
+  id        String     @id @default(uuid(7)) @db.Uuid
+  userId    String?    @db.Uuid
+  sessionId String?    @unique
+
+  // UPDATE WHEN cart.items are updated
+  subtotalIdr      Int           @default(0)
+  taxIdr           Int           @default(0)
+
+  // courier info: calc based on what user selected // PATCH KE CART DURING CHECKOUT
+  shippingCostIdr  Int           @default(0)
+  courierName      String?
+  courierCode      String?
+  shippingMethod   String?
+  // courier info
+
+  items     CartItem[]
+
+  orderId   String?    @unique // murni string uuid
+
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  expiresAt DateTime?
+  @@index([userId])
+  @@index([sessionId])
+  @@index([expiresAt])
+}
+
+model CartItem {
+  id        String          @id @default(uuid(7)) @db.Uuid
+  cartId    String          @db.Uuid
+  productId Int
+  variantId Int
+  quantity  Int             @default(1)
+  price     Decimal         @db.Decimal(10, 2)
+
+  createdAt DateTime        @default(now())
+  cart      Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant   ProductVariant  @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  @@unique([cartId, productId, variantId])
+  @@index([cartId])
+  @@index([productId])
+}
+
+
+enum OrderStatus {
+  PAYMENT_PENDING // for midtrans pending
+  PAYMENT_PAID // for midtrans success
+  PAYMENT_FAILED // for midtrans failed
+  CONFIRMED // confirmed payment by mamabear 
+  PROCESSED // mamabear process order: packing and assigning courier
+  SENDING // courier transporting order
+  RECEIVED
+  COMPLETED
+  CANCELLED
+  REFUNDED
+  RETURNED
+}
+
+model Order {
+  id               String        @id @default(uuid(7)) @db.Uuid
+  userId           String        @db.Uuid
+  orderItems       OrderItem[]
+  status           OrderStatus   @default(PAYMENT_PENDING) 
+
+  receivedExpiresAt DateTime?    // auto expire (set when RECEIVED)
+
+  // from checkout
+  notes            String?
+
+  // FROM CART //
+  subtotalIdr      Int           @default(0)
+  taxIdr           Int           @default(0)
+  shippingCostIdr  Int           @default(0)
+  courierName      String?
+  courierCode      String?
+  shippingMethod   String?
+  // FROM CART //
+
+  // add when order create
+  paymentRedirectUrl String?
+  grandTotalIdr Int             @default(0)
+
+  // add later when get courier
+  trackingNumber   String?
+
+  // add when midtrans update order status
+  paymentMethod    String?
+
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  user                 User                 @relation(fields: [userId], references: [id])
+  orderStatusHistory   OrderStatusHistory[]
+  shippingAddress      OrderAddress?
+}
+
+model OrderItem {
+  id        String          @id @default(uuid(7)) @db.Uuid
+  orderId   String          @db.Uuid
+  productId Int
+  variantId Int
+  quantity  Int             @default(1)
+  price     Decimal         @db.Decimal(10, 2)
+
+  createdAt DateTime        @default(now())
+  order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product         @relation(fields: [productId], references: [id])
+  variant   ProductVariant  @relation(fields: [variantId], references: [id])
+  @@unique([orderId, productId, variantId])
+  @@index([orderId])
+  @@index([productId])
+}
+
+model OrderStatusHistory {
+  id        Int         @id @default(autoincrement())
+  orderId   String      @db.Uuid 
+  status    OrderStatus
+  notes     String?
+
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  order Order @relation(fields: [orderId], references: [id])
+}
+
+model OrderAddress {
+    id              Int      @id @default(autoincrement())
+    orderId         String   @unique @db.Uuid
+    name             String
+    phone            String
+
+    // information and validation is coming from Raja Ongkir API
+    provinceId       Int          
+    provinceName     String       
+    cityId           Int          
+    cityName         String       
+    districtId       Int          
+    districtName     String       
+    subdistrictId    Int            //used for shipping cost calculation
+    subdistrictName  String
+    postalCode       String        //included in subdistrict validation response
+
+    //other information, no validation, user's responsibility
+    road             String        //Jalan, no rumah etc
+    completeAddress  String        //Append all address information
+    detail           String?        //Sebelah rumah pak RT
+    usedFor          String        //Kantor, Rumah 
+
+    order Order @relation(fields: [orderId], references: [id])
+}
+
+model Setting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  type        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime? @updatedAt
+}
+
+model Address {
+    id               Int     @id  @default(autoincrement())
+    userId           String  @db.Uuid 
+    name             String
+    phone            String
+
+    // information and validation is coming from Raja Ongkir API
+    provinceId       Int          
+    provinceName     String       
+    cityId           Int          
+    cityName         String       
+    districtId       Int          
+    districtName     String       
+    subdistrictId    Int            //used for shipping cost calculation
+    subdistrictName  String
+    postalCode       String        //included in subdistrict validation response
+    
+    //other information, no validation, user's responsibility
+    road             String        //Jalan, no rumah etc
+    completeAddress  String        //Append all address information
+    detail           String?        //Sebelah rumah pak RT
+    usedFor          String        //Kantor, Rumah 
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AdminActivityLog {
+    id        Int      @id @default(autoincrement())
+    userId    String   @db.Uuid
+    action    String
+    entity    String
+    entityId  String?
+    createdAt DateTime @default(now())
+
+    user User @relation(fields: [userId], references: [id])
+
+    @@index([userId])
+    @@index([entity])
+    @@index([createdAt])
+}

@@ -1,0 +1,103 @@
+info:
+  name: Export admin customers
+  type: http
+  seq: 50
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/admin/customers/export?search=&sort=registered_at&order=desc&page=1&limit=100"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        // CSV export response - file will be downloaded
+        bru.setNextRequest('Get users');
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200) - CSV Export"
+    request:
+      url: "{{baseUrl}}/api/admin/customers/export?page=1&limit=100&sort=registered_at&order=desc"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "text/csv; charset=utf-8"
+        - name: Content-Disposition
+          value: "attachment; filename=\"customers_2026-06-12.csv\""
+      body:
+        type: text
+        data: |-
+          ID,Name,Email,Phone,Total Orders,Total Spent,Registered At
+          53ff9709-69e4-4aba-a02b-4955381f5a1c,Siti Rahayu,siti.rahayu@email.com,081234567890,3,450000,2026-05-25T14:13:29.168Z
+          936f784c-34f0-4840-8341-4a3265882a8a,Dewi Lestari,dewi.lestari@email.com,081298765432,1,120000,2026-05-25T14:13:29.174Z
+  - name: "With Search Filter"
+    request:
+      url: "{{baseUrl}}/api/admin/customers/export?search=siti&page=1&limit=100"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "text/csv; charset=utf-8"
+        - name: Content-Disposition
+          value: "attachment; filename=\"customers_2026-06-12.csv\""
+      body:
+        type: text
+        data: |-
+          ID,Name,Email,Phone,Total Orders,Total Spent,Registered At
+          53ff9709-69e4-4aba-a02b-4955381f5a1c,Siti Rahayu,siti.rahayu@email.com,081234567890,3,450000,2026-05-25T14:13:29.168Z
+  - name: "Unauthorized (401)"
+    request:
+      url: "{{baseUrl}}/api/admin/customers/export"
+      method: GET
+    response:
+      status: 401
+      statusText: "Unauthorized"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 401,
+            "message": [
+              "Unauthorized"
+            ],
+            "data": null,
+            "timestamp": "2026-06-12T00:00:00.000Z"
+          }
+  - name: "Export Error (500)"
+    request:
+      url: "{{baseUrl}}/api/admin/customers/export"
+      method: GET
+    response:
+      status: 500
+      statusText: "Internal Server Error"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 500,
+            "message": [
+              "Failed to export customers"
+            ],
+            "data": null,
+            "timestamp": "2026-06-12T00:00:00.000Z"
+          }

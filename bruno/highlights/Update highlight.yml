@@ -1,0 +1,124 @@
+info:
+  name: Update highlight
+  type: http
+  seq: 50
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/api/admin/highlights/{{highlightId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Best Seller (Updated)",
+        "description": "Updated best sellers description",
+        "slug": "best-seller-updated-v2"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        bru.setNextRequest('Update user');
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/admin/highlights/3"
+      method: PATCH
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Best Seller (Updated)",
+            "description": "Updated best sellers description",
+            "slug": "best-seller-updated-v2"
+          }
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Highlight best-seller-updated-v2 updated successfully"
+            ],
+            "data": {
+              "id": 3,
+              "name": "Best Seller (Updated)",
+              "slug": "best-seller-updated-v2",
+              "description": "Updated best sellers description",
+              "isActive": true,
+              "products": []
+            },
+            "timestamp": "2026-05-25T14:31:00.000Z"
+          }
+  - name: "Not Found (400)"
+    request:
+      url: "{{baseUrl}}/api/admin/highlights/999999"
+      method: PATCH
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Test"
+          }
+    response:
+      status: 400
+      statusText: "Bad Request"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 400,
+            "message": [
+              "Highlight not found"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }
+  - name: "Unauthorized (401)"
+    request:
+      url: "{{baseUrl}}/api/admin/highlights/1"
+      method: PATCH
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Test"
+          }
+    response:
+      status: 401
+      statusText: "Unauthorized"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 401,
+            "message": [
+              "Unauthorized"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }

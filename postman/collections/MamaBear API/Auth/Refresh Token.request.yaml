@@ -1,0 +1,41 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/refresh"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "refreshToken": "{{refreshToken}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      // --- Success ---
+      pm.test("Status is 200", function () {
+        pm.response.to.have.status(200);
+      });
+
+      pm.test("Response has access_token and refresh_token", function () {
+        const json = pm.response.json();
+        pm.expect(json).to.have.property("access_token").that.is.a("string").and.not.empty;
+        pm.expect(json).to.have.property("refresh_token").that.is.a("string").and.not.empty;
+      });
+
+      // --- Capture new tokens ---
+      const json = pm.response.json();
+      if (json.access_token) {
+        pm.environment.set("accessToken", json.access_token);
+      }
+      if (json.refresh_token) {
+        pm.environment.set("refreshToken", json.refresh_token);
+      }
+
+      // --- Failure ---
+      pm.test("No error field on success", function () {
+        const json = pm.response.json();
+        pm.expect(json).to.not.have.property("error");
+      });
+    language: text/javascript
+order: 4000

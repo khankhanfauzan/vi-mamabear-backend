@@ -1,0 +1,65 @@
+info:
+  name: Healthcheck
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/health"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/health"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "No message specified"
+            ],
+            "data": {
+              "status": "healthy",
+              "service": {
+                "name": "mamabear-backend",
+                "version": "0.0.1",
+                "environment": "development",
+                "uptimeSeconds": 3438,
+                "timestamp": "2026-05-25T14:24:08.469Z"
+              },
+              "checks": {
+                "database": {
+                  "status": "healthy",
+                  "latencyMs": 3,
+                  "message": "Connection successful"
+                },
+                "storage": {
+                  "status": "healthy",
+                  "latencyMs": 28,
+                  "message": "S3 accessible"
+                }
+              },
+              "summary": {
+                "healthy": 2,
+                "degraded": 0,
+                "unhealthy": 0
+              }
+            },
+            "timestamp": "2026-05-25T14:24:08.469Z"
+          }

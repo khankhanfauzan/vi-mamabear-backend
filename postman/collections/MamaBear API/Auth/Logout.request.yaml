@@ -1,0 +1,30 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/logout"
+method: POST
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      // --- Success ---
+      pm.test("Status is 200 or 201", function () {
+        pm.expect(pm.response.code).to.be.oneOf([200, 201]);
+      });
+
+      pm.test("No error field on success", function () {
+        const json = pm.response.json();
+        pm.expect(json).to.not.have.property("error");
+      });
+
+      // --- Failure ---
+      pm.test("Response is not 401 Unauthorized", function () {
+        pm.response.to.not.have.status(401);
+      });
+
+      // --- Cleanup ---
+      pm.environment.unset("accessToken");
+      pm.environment.unset("refreshToken");
+    language: text/javascript
+order: 3000

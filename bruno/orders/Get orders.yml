@@ -1,0 +1,81 @@
+info:
+  name: Get orders
+  type: http
+  seq: 8
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/order?limit=10"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (body && body.data) {
+          const orders = body.data.data || body.data;
+          if (Array.isArray(orders) && orders.length > 0) {
+            bru.setVar('orderId', orders[0].id || '');
+          }
+        }
+        bru.setNextRequest('Get order');
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/order?limit=10"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": ["No message specified"],
+            "data": {
+              "data": [
+                {
+                  "id": "019e61f1-ea25-761c-91f9-02da6fc5aeb5",
+                  "orderNumber": "ORD-001",
+                  "status": "COMPLETED",
+                  "totalPriceIdr": "160000",
+                  "createdAt": "2026-05-25T00:00:00.000Z"
+                }
+              ],
+              "hasNextPage": false
+            },
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }
+  - name: "Unauthorized (401)"
+    request:
+      url: "{{baseUrl}}/api/order?limit=10"
+      method: GET
+    response:
+      status: 401
+      statusText: "Unauthorized"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 401,
+            "message": ["Unauthorized"],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }

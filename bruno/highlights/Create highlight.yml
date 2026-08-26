@@ -1,0 +1,160 @@
+info:
+  name: Create highlight
+  type: http
+  seq: 46
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/admin/highlights"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Bruno Highlight {{runId}}",
+        "description": "Test highlight from Bruno",
+        "isActive": true,
+        "slug": "bruno-highlight-{{runId}}"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (body && body.data) {
+          bru.setVar('highlightId', body.data.id || '');
+        }
+        bru.setNextRequest('Create user');
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (201)"
+    request:
+      url: "{{baseUrl}}/api/admin/highlights"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Best Seller",
+            "description": "Products that are our best sellers",
+            "isActive": true,
+            "slug": "best-seller"
+          }
+    response:
+      status: 201
+      statusText: "Created"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 201,
+            "message": [
+              "Created highlight best-seller"
+            ],
+            "data": {
+              "id": 3,
+              "name": "Best Seller",
+              "slug": "best-seller",
+              "description": "Products that are our best sellers",
+              "isActive": true,
+              "products": []
+            },
+            "timestamp": "2026-05-25T14:30:00.000Z"
+          }
+  - name: "Unauthorized (401)"
+    request:
+      url: "{{baseUrl}}/api/admin/highlights"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Test"
+          }
+    response:
+      status: 401
+      statusText: "Unauthorized"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 401,
+            "message": [
+              "Unauthorized"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }
+  - name: "Validation Error (400)"
+    request:
+      url: "{{baseUrl}}/api/admin/highlights"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": ""
+          }
+    response:
+      status: 400
+      statusText: "Bad Request"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 400,
+            "message": [
+              "name should not be empty"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }
+  - name: "Highlight Already Exists (400)"
+    request:
+      url: "{{baseUrl}}/api/admin/highlights"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "New Additions",
+            "description": "Duplicate test",
+            "slug": "new-additions"
+          }
+    response:
+      status: 400
+      statusText: "Bad Request"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 400,
+            "message": [
+              "Highlight already exists"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }

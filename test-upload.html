@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MamaBear Upload Test</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f5; padding: 24px; color: #333; }
+    h1 { margin-bottom: 8px; }
+    .subtitle { color: #666; margin-bottom: 24px; }
+    .auth-bar { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 24px; display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+    .auth-bar label { display: flex; flex-direction: column; font-size: 13px; font-weight: 600; }
+    .auth-bar input { margin-top: 4px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+    .auth-bar input[type="text"] { width: 500px; }
+    .tabs { display: flex; gap: 0; margin-bottom: 0; }
+    .tab { padding: 10px 20px; background: #e0e0e0; border: 1px solid #ddd; border-bottom: none; cursor: pointer; border-radius: 8px 8px 0 0; font-weight: 600; font-size: 14px; }
+    .tab.active { background: #fff; color: #2563eb; }
+    .panel { display: none; background: #fff; border: 1px solid #ddd; border-radius: 0 8px 8px 8px; padding: 24px; }
+    .panel.active { display: block; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .field { display: flex; flex-direction: column; }
+    .field label { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .field input, .field select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+    .field.full { grid-column: 1 / -1; }
+    .file-picker { border: 2px dashed #ccc; border-radius: 8px; padding: 24px; text-align: center; cursor: pointer; margin-bottom: 16px; transition: border-color 0.2s; }
+    .file-picker:hover { border-color: #2563eb; }
+    .file-picker input { display: none; }
+    .file-picker p { color: #888; font-size: 14px; }
+    .previews { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .preview { position: relative; width: 80px; height: 80px; border-radius: 6px; overflow: hidden; border: 1px solid #ddd; }
+    .preview img { width: 100%; height: 100%; object-fit: cover; }
+    .preview .remove { position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.6); color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+    .submit-btn { background: #2563eb; color: #fff; border: none; padding: 10px 24px; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; }
+    .submit-btn:hover { background: #1d4ed8; }
+    .submit-btn:disabled { background: #93c5fd; cursor: not-allowed; }
+    .response { margin-top: 16px; background: #1e1e1e; color: #d4d4d4; padding: 16px; border-radius: 8px; font-family: monospace; font-size: 13px; white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow-y: auto; display: none; }
+    .response.error { border: 2px solid #ef4444; }
+    .response.success { border: 2px solid #22c55e; }
+    .status { font-size: 13px; margin-top: 8px; color: #666; }
+  </style>
+</head>
+<body>
+  <h1>MamaBear Upload Test</h1>
+  <p class="subtitle">Test product, variant, and category image uploads</p>
+
+  <div class="auth-bar">
+    <label>
+      Base URL
+      <input type="text" id="baseUrl" value="http://localhost:3000" />
+    </label>
+    <label style="flex:1">
+      JWT Token (admin)
+      <input type="text" id="token" placeholder="Paste your admin JWT token here" />
+    </label>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="product">Product</div>
+    <div class="tab" data-tab="variant">Variant</div>
+    <div class="tab" data-tab="category">Category</div>
+  </div>
+
+  <!-- PRODUCT PANEL -->
+  <div class="panel active" id="panel-product">
+    <form id="form-product">
+      <div class="form-grid">
+        <div class="field">
+          <label>Name *</label>
+          <input type="text" name="name" value="Test Product" required />
+        </div>
+        <div class="field">
+          <label>Price (IDR) *</label>
+          <input type="number" name="priceIdr" value="45000" required />
+        </div>
+        <div class="field">
+          <label>Weight (g) *</label>
+          <input type="number" name="weightG" value="500" required />
+        </div>
+        <div class="field">
+          <label>Stock</label>
+          <input type="number" name="stock" value="100" />
+        </div>
+        <div class="field">
+          <label>SKU</label>
+          <input type="text" name="sku" value="TEST-001" />
+        </div>
+        <div class="field">
+          <label>Description</label>
+          <input type="text" name="description" value="Test product description" />
+        </div>
+        <div class="field">
+          <label>Category ID</label>
+          <input type="number" name="categoryId" />
+        </div>
+        <div class="field">
+          <label>Highlight ID</label>
+          <input type="number" name="highlightId" />
+        </div>
+      </div>
+
+      <div class="file-picker" id="picker-product" data-panel="product">
+        <input type="file" multiple accept="image/jpeg,image/png,image/webp" />
+        <p>Click or drop images here (max 10, jpg/png/webp)</p>
+      </div>
+      <div class="previews" id="previews-product"></div>
+
+      <button type="submit" class="submit-btn">Upload Product</button>
+      <span class="status" id="status-product"></span>
+      <div class="response" id="response-product"></div>
+    </form>
+  </div>
+
+  <!-- VARIANT PANEL -->
+  <div class="panel" id="panel-variant">
+    <form id="form-variant">
+      <div class="form-grid">
+        <div class="field">
+          <label>Product ID *</label>
+          <input type="number" name="productId" required placeholder="e.g. 1" />
+        </div>
+        <div class="field">
+          <label>Variant Name *</label>
+          <input type="text" name="name" value="250g Pack" required />
+        </div>
+        <div class="field">
+          <label>Price (IDR) *</label>
+          <input type="number" name="priceIdr" value="25000" required />
+        </div>
+        <div class="field">
+          <label>Weight (g) *</label>
+          <input type="number" name="weightG" value="250" required />
+        </div>
+        <div class="field">
+          <label>Stock</label>
+          <input type="number" name="stock" value="50" />
+        </div>
+        <div class="field">
+          <label>SKU</label>
+          <input type="text" name="sku" value="TEST-VAR-001" />
+        </div>
+      </div>
+
+      <div class="file-picker" id="picker-variant" data-panel="variant">
+        <input type="file" multiple accept="image/jpeg,image/png,image/webp" />
+        <p>Click or drop images here (max 10, jpg/png/webp)</p>
+      </div>
+      <div class="previews" id="previews-variant"></div>
+
+      <button type="submit" class="submit-btn">Upload Variant</button>
+      <span class="status" id="status-variant"></span>
+      <div class="response" id="response-variant"></div>
+    </form>
+  </div>
+
+  <!-- CATEGORY PANEL -->
+  <div class="panel" id="panel-category">
+    <form id="form-category">
+      <div class="form-grid">
+        <div class="field">
+          <label>Name *</label>
+          <input type="text" name="name" value="Test Category" required />
+        </div>
+        <div class="field">
+          <label>Slug *</label>
+          <input type="text" name="slug" value="test-category" required />
+        </div>
+        <div class="field">
+          <label>Description</label>
+          <input type="text" name="description" value="Test category description" />
+        </div>
+        <div class="field">
+          <label>Sort Order</label>
+          <input type="number" name="sortOrder" value="0" />
+        </div>
+      </div>
+
+      <div class="file-picker" id="picker-category" data-panel="category">
+        <input type="file" accept="image/jpeg,image/png,image/webp" />
+        <p>Click or drop an image here (jpg/png/webp)</p>
+      </div>
+      <div class="previews" id="previews-category"></div>
+
+      <button type="submit" class="submit-btn">Upload Category</button>
+      <span class="status" id="status-category"></span>
+      <div class="response" id="response-category"></div>
+    </form>
+  </div>
+
+  <script>
+    const filesMap = { product: [], variant: [], category: [] };
+
+    function getBaseUrl() { return document.getElementById('baseUrl').value.replace(/\/+$/, ''); }
+    function getToken() { return document.getElementById('token').value.trim(); }
+    function headers() {
+      const h = {};
+      const t = getToken();
+      if (t) h['Authorization'] = `Bearer ${t}`;
+      return h;
+    }
+
+    // Tabs
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(`panel-${tab.dataset.tab}`).classList.add('active');
+      });
+    });
+
+    // File pickers
+    document.querySelectorAll('.file-picker').forEach(picker => {
+      const input = picker.querySelector('input');
+      const panel = picker.dataset.panel;
+
+      picker.addEventListener('click', () => input.click());
+      picker.addEventListener('dragover', e => { e.preventDefault(); picker.style.borderColor = '#2563eb'; });
+      picker.addEventListener('dragleave', () => { picker.style.borderColor = '#ccc'; });
+      picker.addEventListener('drop', e => {
+        e.preventDefault();
+        picker.style.borderColor = '#ccc';
+        handleFiles(panel, e.dataTransfer.files);
+      });
+      input.addEventListener('change', () => {
+        handleFiles(panel, input.files);
+        input.value = '';
+      });
+    });
+
+    function handleFiles(panel, fileList) {
+      const max = panel === 'category' ? 1 : 10;
+      const arr = Array.from(fileList).filter(f => f.type.match(/image\/(jpeg|png|webp)/));
+      filesMap[panel] = arr.slice(0, max);
+      renderPreviews(panel);
+    }
+
+    function renderPreviews(panel) {
+      const container = document.getElementById(`previews-${panel}`);
+      container.innerHTML = '';
+      filesMap[panel].forEach((file, i) => {
+        const div = document.createElement('div');
+        div.className = 'preview';
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        const btn = document.createElement('button');
+        btn.className = 'remove';
+        btn.textContent = 'x';
+        btn.type = 'button';
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          filesMap[panel].splice(i, 1);
+          renderPreviews(panel);
+        };
+        div.appendChild(img);
+        div.appendChild(btn);
+        container.appendChild(div);
+      });
+    }
+
+    function showResponse(panel, data, isError) {
+      const el = document.getElementById(`response-${panel}`);
+      el.className = `response ${isError ? 'error' : 'success'}`;
+      el.style.display = 'block';
+      el.textContent = JSON.stringify(data, null, 2);
+    }
+
+    // Product submit
+    document.getElementById('form-product').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const fd = new FormData();
+      fd.append('name', form.name.value);
+      fd.append('priceIdr', form.priceIdr.value);
+      fd.append('weightG', form.weightG.value);
+      fd.append('stock', form.stock.value);
+      fd.append('sku', form.sku.value);
+      fd.append('description', form.description.value);
+      if (form.categoryId.value) fd.append('categoryId', form.categoryId.value);
+      if (form.highlightId.value) fd.append('highlightId', form.highlightId.value);
+      filesMap.product.forEach(f => fd.append('images', f));
+
+      const status = document.getElementById('status-product');
+      status.textContent = 'Uploading...';
+      try {
+        const res = await fetch(`${getBaseUrl()}/api/products`, {
+          method: 'POST', headers: headers(), body: fd,
+        });
+        const data = await res.json();
+        showResponse('product', data, !res.ok);
+        status.textContent = res.ok ? `Success (${res.status})` : `Error ${res.status}`;
+      } catch (err) {
+        showResponse('product', { error: err.message }, true);
+        status.textContent = 'Network error';
+      }
+    });
+
+    // Variant submit
+    document.getElementById('form-variant').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const productId = form.productId.value;
+      const fd = new FormData();
+      fd.append('name', form.name.value);
+      fd.append('priceIdr', form.priceIdr.value);
+      fd.append('weightG', form.weightG.value);
+      fd.append('stock', form.stock.value);
+      fd.append('sku', form.sku.value);
+      filesMap.variant.forEach(f => fd.append('images', f));
+
+      const status = document.getElementById('status-variant');
+      status.textContent = 'Uploading...';
+      try {
+        const res = await fetch(`${getBaseUrl()}/api/products/${productId}/variants`, {
+          method: 'POST', headers: headers(), body: fd,
+        });
+        const data = await res.json();
+        showResponse('variant', data, !res.ok);
+        status.textContent = res.ok ? `Success (${res.status})` : `Error ${res.status}`;
+      } catch (err) {
+        showResponse('variant', { error: err.message }, true);
+        status.textContent = 'Network error';
+      }
+    });
+
+    // Category submit
+    document.getElementById('form-category').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const fd = new FormData();
+      fd.append('name', form.name.value);
+      fd.append('slug', form.slug.value);
+      fd.append('description', form.description.value);
+      fd.append('sortOrder', form.sortOrder.value);
+      if (filesMap.category.length > 0) fd.append('image', filesMap.category[0]);
+
+      const status = document.getElementById('status-category');
+      status.textContent = 'Uploading...';
+      try {
+        const res = await fetch(`${getBaseUrl()}/api/categories`, {
+          method: 'POST', headers: headers(), body: fd,
+        });
+        const data = await res.json();
+        showResponse('category', data, !res.ok);
+        status.textContent = res.ok ? `Success (${res.status})` : `Error ${res.status}`;
+      } catch (err) {
+        showResponse('category', { error: err.message }, true);
+        status.textContent = 'Network error';
+      }
+    });
+  </script>
+</body>
+</html>

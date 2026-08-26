@@ -1,0 +1,22 @@
+info:
+  name: Calculate Shipping Cost
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/shipping/cost"
+  body:
+    type: form-urlencoded
+    data:
+      - name: destination
+        value: "8133"
+      - name: price
+        value: lowest
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

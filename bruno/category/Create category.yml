@@ -1,0 +1,194 @@
+info:
+  name: Create category
+  type: http
+  seq: 45
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/admin/categories"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Bruno Category {{runId}}",
+        "description": "Test category from Bruno"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (body && body.data) {
+          bru.setVar('categoryId', body.data.id || '');
+          bru.setVar('categorySlug', body.data.slug || '');
+        }
+        bru.setNextRequest('Create highlight');
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (201)"
+    request:
+      url: "{{baseUrl}}/api/admin/categories"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Growing-up Formula",
+            "description": "Formula untuk anak usia 1-3 tahun"
+          }
+    response:
+      status: 201
+      statusText: "Created"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 201,
+            "message": [
+              "Category Growing-up Formula created successfully"
+            ],
+            "data": {
+              "id": 3,
+              "name": "Growing-up Formula",
+              "slug": "growing-up-formula",
+              "description": "Formula untuk anak usia 1-3 tahun",
+              "isActive": true,
+              "sortOrder": 0,
+              "createdAt": "2026-05-25T14:30:00.000Z",
+              "updatedAt": "2026-05-25T14:30:00.000Z",
+              "imageUrl": null,
+              "publicId": null,
+              "altText": null,
+              "width": null,
+              "height": null,
+              "fileSize": null,
+              "format": null
+            },
+            "timestamp": "2026-05-25T14:30:00.000Z"
+          }
+  - name: "Unauthorized (401)"
+    request:
+      url: "{{baseUrl}}/api/admin/categories"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Test"
+          }
+    response:
+      status: 401
+      statusText: "Unauthorized"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 401,
+            "message": [
+              "Unauthorized"
+            ],
+            "data": null,
+            "timestamp": "2026-05-26T00:00:00.000Z"
+          }
+  - name: "File Needed (400)"
+    request:
+      url: "{{baseUrl}}/api/admin/categories"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Bruno Test Category",
+            "description": "Test category from Bruno"
+          }
+    response:
+      status: 401
+      statusText: "Unauthorized"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 401,
+            "message": [
+              "Unauthorized"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }
+  - name: "Validation Error (400)"
+    request:
+      url: "{{baseUrl}}/api/admin/categories"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": ""
+          }
+    response:
+      status: 400
+      statusText: "Bad Request"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 400,
+            "message": [
+              "name should not be empty"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }
+  - name: "Category Already Exists (400)"
+    request:
+      url: "{{baseUrl}}/api/admin/categories"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Maternity Supplies",
+            "description": "Duplicate test"
+          }
+    response:
+      status: 400
+      statusText: "Bad Request"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 400,
+            "message": [
+              "Category already exists"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }

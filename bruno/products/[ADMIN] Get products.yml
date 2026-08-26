@@ -1,0 +1,189 @@
+info:
+  name: "[ADMIN] Get products"
+  type: http
+  seq: 17
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/admin/products?limit=20&page=1"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/admin/products?limit=2&page=1"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Returned 2 products (page 1 of 3)"
+            ],
+            "data": {
+              "success": true,
+              "data": [
+                {
+                  "id": 5,
+                  "name": "MamaBear ASI Booster 30 Kapsul - Pelancar ASI Fenugreek Free Halal BPOM",
+                  "slug": "mamabear-asi-booster-30-kapsul",
+                  "isActive": true,
+                  "totalSold": 0,
+                  "categoryId": 2,
+                  "highlightId": 2,
+                  "tags": [],
+                  "description": "Kapsul Pelancar ASI pertama dengan Triple Benefit dalam 1 kapsul",
+                  "createdAt": "2026-06-11T15:01:37.217Z",
+                  "updatedAt": "2026-06-11T15:01:37.217Z",
+                  "category": {
+                    "id": 2,
+                    "name": "ASI Booster",
+                    "slug": "asi-booster"
+                  },
+                  "images": [
+                    {
+                      "id": 46,
+                      "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1779387981/mamabear/Kapsul/Kapsul-01.jpg",
+                      "sortOrder": 1,
+                      "altText": "MamaBear Kapsul 01"
+                    }
+                  ],
+                  "variants": [
+                    {
+                      "id": 14,
+                      "name": "30 kapsul",
+                      "priceIdr": "100000",
+                      "stock": 100,
+                      "sku": "CP.AB30"
+                    }
+                  ],
+                  "highlight": {
+                    "id": 2,
+                    "name": "Recommended",
+                    "slug": "recommended"
+                  },
+                  "currentPrice": "100000",
+                  "originalPrice": "100000",
+                  "discountPercent": 0,
+                  "rating": 4.11,
+                  "reviewsCount": 10
+                },
+                {
+                  "id": 4,
+                  "name": "MamaBear Kukis Almond Oat - Camilan Kaya Nutrisi untuk Ibu Menyusui Halal BPOM",
+                  "slug": "mamabear-kukis-almond-oat",
+                  "isActive": true,
+                  "totalSold": 0,
+                  "categoryId": 2,
+                  "highlightId": 1,
+                  "tags": [],
+                  "description": "Memberi segala kebaikan untuk Mama selama masa menyusui",
+                  "createdAt": "2026-06-11T15:01:33.553Z",
+                  "updatedAt": "2026-06-11T15:01:33.553Z",
+                  "category": {
+                    "id": 2,
+                    "name": "ASI Booster",
+                    "slug": "asi-booster"
+                  },
+                  "images": [],
+                  "variants": [
+                    {
+                      "id": 11,
+                      "name": "Choco Nut",
+                      "priceIdr": "80000",
+                      "stock": 100,
+                      "sku": "KU.MMBR"
+                    }
+                  ],
+                  "highlight": {
+                    "id": 1,
+                    "name": "New Additions",
+                    "slug": "new-additions"
+                  },
+                  "currentPrice": "80000",
+                  "originalPrice": "80000",
+                  "discountPercent": 0,
+                  "rating": 3.78,
+                  "reviewsCount": 8
+                }
+              ],
+              "pagination": {
+                "page": 1,
+                "limit": 2,
+                "totalItems": 5,
+                "totalPages": 3,
+                "hasNextPage": true,
+                "hasPrevPage": false
+              }
+            },
+            "timestamp": "2026-06-12T07:06:41.459Z"
+          }
+  - name: "With Search & Filter (200)"
+    request:
+      url: "{{baseUrl}}/api/admin/products?search=asi&isActive=true&sortBy=createdAt&sortOrder=desc&limit=10"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Returned 3 products (page 1 of 1)"
+            ],
+            "data": {
+              "success": true,
+              "data": [],
+              "pagination": {
+                "page": 1,
+                "limit": 10,
+                "totalItems": 3,
+                "totalPages": 1,
+                "hasNextPage": false,
+                "hasPrevPage": false
+              }
+            },
+            "timestamp": "2026-06-12T07:06:41.459Z"
+          }
+  - name: "Unauthorized (401)"
+    request:
+      url: "{{baseUrl}}/api/admin/products"
+      method: GET
+    response:
+      status: 401
+      statusText: "Unauthorized"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 401,
+            "message": [
+              "Unauthorized"
+            ],
+            "data": null,
+            "timestamp": "2026-06-12T07:06:41.459Z"
+          }

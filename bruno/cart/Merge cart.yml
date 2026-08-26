@@ -1,0 +1,58 @@
+info:
+  name: Merge cart
+  type: http
+  seq: 28
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/cart/merge"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/cart/merge"
+      method: POST
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Cart merged successfully"
+            ],
+            "data": {
+              "id": "019e5f85-8d7b-777e-a54f-477aa8702037",
+              "items": []
+            },
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }
+  - name: "No Session (200)"
+    request:
+      url: "{{baseUrl}}/api/cart/merge"
+      method: POST
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "message": "No session cart to merge"
+          }

@@ -1,0 +1,138 @@
+info:
+  name: Get one product
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/products/{{productSlug}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        bru.setNextRequest('Get related products');
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/products/mamabear-almonmix-isi-6-sachet"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Found product with slug mamabear-almonmix-isi-6-sachet"
+            ],
+            "data": {
+              "id": 1,
+              "name": "MamaBear AlmonMix Isi 6 Sachet",
+              "slug": "mamabear-almonmix-isi-6-sachet",
+              "isActive": true,
+              "categoryId": 1,
+              "highlightId": 1,
+              "tags": [
+                "formula",
+                "lactation"
+              ],
+              "description": "Minuman Serbuk dengan Almond",
+              "ingredients": "Daun Katuk, Daun Kelor, Almond",
+              "usageInstructions": "Seduh 1 sachet",
+              "createdAt": "2026-05-25T14:23:11.448Z",
+              "updatedAt": "2026-05-25T14:23:11.448Z",
+              "category": {
+                "id": 1,
+                "name": "Maternity Supplies",
+                "slug": "maternity-supplies",
+                "description": "Makanan & minuman untuk ibu menyusui",
+                "isActive": true,
+                "sortOrder": 1,
+                "createdAt": "2026-05-25T14:13:29.188Z",
+                "updatedAt": "2026-05-25T14:13:29.188Z",
+                "imageUrl": null,
+                "publicId": "62bc13b1-20ff-44fe-9d52-bea934374a31",
+                "altText": null,
+                "width": null,
+                "height": null,
+                "fileSize": null,
+                "format": null
+              },
+              "images": [],
+              "variants": [
+                {
+                  "id": 1,
+                  "productId": 1,
+                  "name": "INTERNAL_DEFAULT",
+                  "priceIdr": "80000",
+                  "weightG": 180,
+                  "sku": "ALMMBR01",
+                  "stock": 100,
+                  "sortOrder": 0,
+                  "createdAt": "2026-05-25T14:23:12.881Z",
+                  "updatedAt": "2026-05-25T14:23:12.881Z"
+                }
+              ],
+              "highlight": {
+                "id": 1,
+                "name": "New Additions",
+                "slug": "new-additions",
+                "description": "Produk terbaru dari MamaBear",
+                "isActive": true
+              },
+              "currentPrice": "80000",
+              "originalPrice": "80000",
+              "discountPercent": 0,
+              "rating": 5,
+              "reviewsCount": 1,
+              "topReview": {
+                "id": 1,
+                "title": "Sangat puas",
+                "reviewerId": "53ff9709-69e4-4aba-a02b-4955381f5a1c",
+                "productId": 1,
+                "rating": 5,
+                "numUpvotes": 0,
+                "description": "ASI saya meningkat drastis setelah 1 minggu konsumsi",
+                "imageUrls": [],
+                "createdAt": "2026-05-25T14:23:39.391Z"
+              }
+            },
+            "timestamp": "2026-05-25T14:24:08.565Z"
+          }
+  - name: "Not Found (404)"
+    request:
+      url: "{{baseUrl}}/api/products/nonexistent-xyz"
+      method: GET
+    response:
+      status: 404
+      statusText: "Not Found"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 404,
+            "message": [
+              "Cannot find product with slug nonexistent-xyz"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T14:24:28.261Z"
+          }

@@ -1,0 +1,20 @@
+info:
+  name: DeleteMyAddress
+  type: http
+  seq: 4
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/api/me/addresses/{{id}}"
+  auth: inherit
+
+runtime:
+  variables:
+    - name: id
+      value: "5"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

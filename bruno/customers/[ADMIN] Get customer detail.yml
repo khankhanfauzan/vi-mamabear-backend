@@ -1,0 +1,103 @@
+info:
+  name: "[ADMIN] Get customer detail"
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/admin/customers/{{customerId}}"
+  auth: inherit
+
+runtime:
+  variables:
+    - name: customerId
+      value: 4aebe6be-291a-41df-a099-6c145e220fb9
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: Success (200)
+    request:
+      url: "{{baseUrl}}/api/admin/customers/d9492654-47c3-459f-849f-76defbd5fa72"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Found customer with id d9492654-47c3-459f-849f-76defbd5fa72"
+            ],
+            "data": {
+              "id": "d9492654-47c3-459f-849f-76defbd5fa72",
+              "email": "budi.santoso@email.com",
+              "name": "Budi Santoso",
+              "phone": "085678901234",
+              "role": "USER",
+              "isVerified": true,
+              "createdAt": "2026-06-11T15:01:06.323Z",
+              "updatedAt": "2026-06-12T00:53:53.063Z",
+              "address": [],
+              "orders": [],
+              "totalOrders": 0,
+              "totalSpent": 0,
+              "averageOrderValue": 0,
+              "lastOrderDate": null
+            },
+            "timestamp": "2026-06-12T07:06:41.374Z"
+          }
+  - name: Not Found (404)
+    request:
+      url: "{{baseUrl}}/api/admin/customers/00000000-0000-0000-0000-000000000000"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 404,
+            "message": [
+              "Customer with id 00000000-0000-0000-0000-000000000000 not found"
+            ],
+            "data": null,
+            "timestamp": "2026-06-12T07:06:41.374Z"
+          }
+  - name: Unauthorized (401)
+    request:
+      url: "{{baseUrl}}/api/admin/customers/d9492654-47c3-459f-849f-76defbd5fa72"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 401,
+            "message": [
+              "Unauthorized"
+            ],
+            "data": null,
+            "timestamp": "2026-06-12T07:06:41.374Z"
+          }

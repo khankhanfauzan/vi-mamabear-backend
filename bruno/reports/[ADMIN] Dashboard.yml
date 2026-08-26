@@ -1,0 +1,96 @@
+info:
+  name: "[ADMIN] Dashboard"
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/admin/reports/dashboard"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/admin/reports/dashboard"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "No message specified"
+            ],
+            "data": {
+              "overview": {
+                "totalRevenue": 0,
+                "totalOrders": 0,
+                "totalCustomers": 4,
+                "totalProducts": 5,
+                "revenueLast30Days": 0,
+                "ordersLast7Days": 0
+              },
+              "ordersByStatus": [],
+              "revenueByDay": [],
+              "topProducts": [
+                {
+                  "id": 1,
+                  "name": "MamaBear AlmonMix Isi 6 Sachet - Minuman Serbuk dengan Almond - Kaya Nutrisi Untuk Ibu Menyusui BPOM HALAL",
+                  "slug": "mamabear-almonmix-isi-6-sachet",
+                  "totalSold": 0,
+                  "thumbnail": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1779384640/mamabear/AlmonMix/AlmonMix-01.jpg"
+                },
+                {
+                  "id": 2,
+                  "name": "MamaBear ZoyaMix Rasa Cokelat Isi 10 Sachet - Sereal Kaya Nutrisi untuk Ibu Menyusui Halal BPOM",
+                  "slug": "mamabear-zoyamix-rasa-cokelat-isi-10-sachet",
+                  "totalSold": 0,
+                  "thumbnail": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1779385690/mamabear/ZoyaMix/ZoyaMix-01.jpg"
+                },
+                {
+                  "id": 3,
+                  "name": "MamaBear Teh Pelancar ASI Isi 20 Sachet - ASI Booster Pelancar Peningkat Produksi ASI BPOM dan Halal",
+                  "slug": "mamabear-teh-pelancar-asi-isi-20-sachet",
+                  "totalSold": 0,
+                  "thumbnail": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1779385776/mamabear/Teh/Lactation-Tea-01.jpg"
+                }
+              ],
+              "recentOrders": []
+            },
+            "timestamp": "2026-06-12T07:06:50.986Z"
+          }
+  - name: "Unauthorized (401)"
+    request:
+      url: "{{baseUrl}}/api/admin/reports/dashboard"
+      method: GET
+    response:
+      status: 401
+      statusText: "Unauthorized"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 401,
+            "message": [
+              "Unauthorized"
+            ],
+            "data": null,
+            "timestamp": "2026-06-12T07:06:50.986Z"
+          }

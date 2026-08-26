@@ -1,0 +1,43 @@
+info:
+  name: Clear courier
+  type: http
+  seq: 34
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/api/cart/{{cartId}}/courier"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/cart/019e61f1-ea0e-7206-af15-9d60b78c1d0a/courier"
+      method: DELETE
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": ["Courier information cleared successfully"],
+            "data": {
+              "id": "019e61f1-ea0e-7206-af15-9d60b78c1d0a",
+              "courierName": null,
+              "courierCode": null,
+              "shippingMethod": null,
+              "shippingCostIdr": null
+            },
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }

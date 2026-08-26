@@ -1,0 +1,78 @@
+info:
+  name: Cancel order
+  type: http
+  seq: 10
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/order/{{orderId}}/cancel"
+  body:
+    type: json
+    data: |-
+      {
+        "reason": "Changed my mind"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/order/019e61f1-ea25-761c-91f9-02da6fc5aeb5/cancel"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "reason": "Changed my mind"
+          }
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": ["Order cancelled successfully"],
+            "data": {
+              "id": "019e61f1-ea25-761c-91f9-02da6fc5aeb5",
+              "status": "CANCELLED"
+            },
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }
+  - name: "Cannot Cancel (400)"
+    request:
+      url: "{{baseUrl}}/api/order/019e61f1-ea25-761c-91f9-02da6fc5aeb5/cancel"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "reason": "Changed my mind"
+          }
+    response:
+      status: 400
+      statusText: "Bad Request"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 400,
+            "message": ["Order cannot be cancelled in its current status"],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }

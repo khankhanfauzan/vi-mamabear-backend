@@ -1,0 +1,132 @@
+info:
+  name: "[ADMIN] Get activity logs"
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/admin/activity-logs?limit=20&page=1"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success (200)"
+    request:
+      url: "{{baseUrl}}/api/admin/activity-logs?limit=2&page=1"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Returned 2 activity logs (page 1 of 3)"
+            ],
+            "data": {
+              "success": true,
+              "data": [
+                {
+                  "id": 1,
+                  "userId": "d9492654-47c3-459f-849f-76defbd5fa72",
+                  "action": "UPDATE_STATUS",
+                  "entity": "Order",
+                  "entityId": "019eb26a-12fb-734c-944d-3c0ffcdd6bf3",
+                  "createdAt": "2026-06-12T07:15:00.000Z",
+                  "user": {
+                    "id": "d9492654-47c3-459f-849f-76defbd5fa72",
+                    "name": "Admin User",
+                    "email": "admin@mamabear.id"
+                  }
+                },
+                {
+                  "id": 2,
+                  "userId": "d9492654-47c3-459f-849f-76defbd5fa72",
+                  "action": "CREATE",
+                  "entity": "Product",
+                  "entityId": "5",
+                  "createdAt": "2026-06-12T07:10:00.000Z",
+                  "user": {
+                    "id": "d9492654-47c3-459f-849f-76defbd5fa72",
+                    "name": "Admin User",
+                    "email": "admin@mamabear.id"
+                  }
+                }
+              ],
+              "pagination": {
+                "page": 1,
+                "limit": 2,
+                "totalItems": 5,
+                "totalPages": 3,
+                "hasNextPage": true,
+                "hasPrevPage": false
+              }
+            },
+            "timestamp": "2026-06-12T07:15:00.000Z"
+          }
+  - name: "With Filters (200)"
+    request:
+      url: "{{baseUrl}}/api/admin/activity-logs?sortBy=createdAt&sortOrder=desc&limit=10"
+      method: GET
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "Returned 0 activity logs (page 1 of 0)"
+            ],
+            "data": {
+              "success": true,
+              "data": [],
+              "pagination": {
+                "page": 1,
+                "limit": 10,
+                "totalItems": 0,
+                "totalPages": 0,
+                "hasNextPage": false,
+                "hasPrevPage": false
+              }
+            },
+            "timestamp": "2026-06-12T07:15:00.000Z"
+          }
+  - name: "Unauthorized (401)"
+    request:
+      url: "{{baseUrl}}/api/admin/activity-logs"
+      method: GET
+    response:
+      status: 401
+      statusText: "Unauthorized"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 401,
+            "message": [
+              "Unauthorized"
+            ],
+            "data": null,
+            "timestamp": "2026-06-12T07:15:00.000Z"
+          }

@@ -1,0 +1,607 @@
+info:
+  name: Create product
+  type: http
+  seq: 42
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/admin/products"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Brunos Product {{runId}} with Rawrrs",
+        "description": "Test product from Bruno collection",
+        "ingredients": "Test ingredients",
+        "usageInstructions": "Test usage instructions",
+        "weightG": 100,
+        "priceIdr": 50000,
+        "stock": 10,
+        "sku": "BRUNO-{{runId}}",
+        "categoryId": 1,
+        "tags": ["formula", "toddler"],
+        "images": [
+      {
+          "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1781623028/products/xqdemqmppkm1mshomago.jpg",
+          "publicId": "products/xqdemqmppkm1mshomago",
+          "width": 1280,
+          "height": 720,
+          "fileSize": 62192,
+          "format": "jpg",
+          "altText": "bg2",
+          "sortOrder": 0
+      }
+        ],
+        "variants": [
+          {
+            "name": "S-26 Procal Gold 3 - 400gg",
+            "priceIdr": 120000,
+            "weightG": 400,
+            "sku": "S26-PROCAL-3-400",
+            "stock": 30,
+            "images": [
+              {
+              "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1781623062/products/qqmgoddptb8bru0yrg6w.jpg",
+          "publicId": "products/qqmgoddptb8bru0yrg6w",
+          "width": 4000,
+          "height": 2250,
+          "fileSize": 210509,
+          "format": "jpg",
+          "altText": "bg",
+          "sortOrder": 0
+              }
+            ]
+          },
+          {
+            "name": "S-26 Procal Gold 3 - 700gg",
+            "priceIdr": 160000,
+            "weightG": 700,
+            "sku": "S26-PROCAL-3-700",
+            "stock": 20,
+            "images":[
+            {
+             "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1781623099/products/cgp5ldvfip8gzl4kqame.png",
+          "publicId": "products/cgp5ldvfip8gzl4kqame",
+          "width": 360,
+          "height": 360,
+          "fileSize": 3208,
+          "format": "png",
+          "altText": "bpjs",
+          "sortOrder": 0
+          }
+            ]
+          }
+        ]
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        if (body && body.data) {
+          bru.setVar('productId', body.data.id || '');
+          bru.setVar('productSlug', body.data.slug || '');
+        }
+        bru.setNextRequest('Create category');
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: Success (201)
+    request:
+      url: "{{baseUrl}}/api/admin/products"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Bruno Test Product",
+            "description": "Test product from Bruno collection",
+            "ingredients": "Test ingredients",
+            "usageInstructions": "Test usage instructions",
+            "weightG": 100,
+            "priceIdr": 50000,
+            "stock": 10,
+            "sku": "BRUNO-TEST-001"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 201,
+            "message": [
+              "Product Bruno Test Product created successfully"
+            ],
+            "data": {
+              "id": 9,
+              "name": "Bruno Test Product",
+              "slug": "bruno-test-product",
+              "isActive": true,
+              "categoryId": null,
+              "highlightId": null,
+              "tags": [],
+              "description": "Test product from Bruno collection",
+              "ingredients": null,
+              "usageInstructions": null,
+              "createdAt": "2026-05-26T02:14:52.500Z",
+              "updatedAt": "2026-05-26T02:14:52.500Z",
+              "category": null,
+              "images": [],
+              "variants": [
+                {
+                  "id": 16,
+                  "productId": 9,
+                  "name": "INTERNAL_DEFAULT",
+                  "priceIdr": "50000",
+                  "weightG": 100,
+                  "sku": "BRUNO-TEST-001",
+                  "stock": 10,
+                  "sortOrder": 0,
+                  "createdAt": "2026-05-26T02:14:52.504Z",
+                  "updatedAt": "2026-05-26T02:14:52.504Z"
+                }
+              ]
+            },
+            "timestamp": "2026-05-26T02:14:52.504Z"
+          }
+  - name: Unauthorized (401)
+    request:
+      url: "{{baseUrl}}/api/admin/products"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Test"
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 401,
+            "message": [
+              "Unauthorized"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T00:00:00.000Z"
+          }
+  - name: Validation Error (400)
+    request:
+      url: "{{baseUrl}}/api/admin/products"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "",
+            "weightG": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 400,
+            "message": [
+              "name should not be empty",
+              "description must be a string",
+              "ingredients must be a string",
+              "usageInstructions must be a string",
+              "weightG should not be empty",
+              "weightG must be a number conforming to the specified constraints",
+              "priceIdr must be a number conforming to the specified constraints"
+            ],
+            "data": null,
+            "timestamp": "2026-05-25T14:24:28.235Z"
+          }
+  - name: "success: with variant"
+    request:
+      url: "{{baseUrl}}/api/admin/products"
+      method: POST
+      body:
+        type: json
+        data: |-
+          // {
+          //   "name": "Bruno Product {{runId}}",
+          //   "description": "Test product from Bruno collection",
+          //   "ingredients": "Test ingredients",
+          //   "usageInstructions": "Test usage instructions",
+          //   "weightG": 100,
+          //   "priceIdr": 50000,
+          //   "stock": 10,
+          //   "sku": "BRUNO-{{runId}}"
+          // }
+
+          {
+            "name": "Brunos Product {{runId}}",
+            "description": "Test product from Bruno collection",
+            "ingredients": "Test ingredients",
+            "usageInstructions": "Test usage instructions",
+            "weightG": 100,
+            "priceIdr": 50000,
+            "stock": 10,
+            "sku": "BRUNO-{{runId}}",
+            "categoryId": 1,
+            "tags": ["formula", "toddler"],
+            "variants": [
+              {
+                "name": "S-26 Procal Gold 3 - 400g",
+                "priceIdr": 120000,
+                "weightG": 400,
+                "sku": "S26-PROCAL-3-400",
+                "stock": 30,
+                "sortOrder": 1
+              },
+              {
+                "name": "S-26 Procal Gold 3 - 700g",
+                "priceIdr": 160000,
+                "weightG": 700,
+                "sku": "S26-PROCAL-3-700",
+                "stock": 20,
+                "sortOrder": 2
+              }
+            ]
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: x-powered-by
+          value: Express
+        - name: vary
+          value: Origin
+        - name: access-control-allow-credentials
+          value: "true"
+        - name: content-type
+          value: application/json; charset=utf-8
+        - name: content-length
+          value: "1588"
+        - name: etag
+          value: W/"634-MIbzxIFbBWmvPQa9noH951hEaWg"
+        - name: date
+          value: Fri, 12 Jun 2026 12:34:18 GMT
+        - name: connection
+          value: keep-alive
+        - name: keep-alive
+          value: timeout=5
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 201,
+            "message": [
+              "Product Brunos Product 1781267275602 created successfully"
+            ],
+            "data": {
+              "id": 8,
+              "name": "Brunos Product 1781267275602",
+              "slug": "brunos-product-1781267275602",
+              "isActive": true,
+              "totalSold": 0,
+              "categoryId": 1,
+              "highlightId": null,
+              "tags": [
+                "formula",
+                "toddler"
+              ],
+              "description": "Test product from Bruno collection",
+              "ingredients": "Test ingredients",
+              "usageInstructions": "Test usage instructions",
+              "createdAt": "2026-06-12T12:34:16.724Z",
+              "updatedAt": "2026-06-12T12:34:16.724Z",
+              "metaTitle": null,
+              "metaDescription": null,
+              "category": {
+                "id": 1,
+                "name": "Maternity Supplies",
+                "slug": "maternity-supplies",
+                "description": "Makanan & minuman untuk ibu menyusui",
+                "metaTitle": null,
+                "metaDescription": null,
+                "isActive": true,
+                "sortOrder": 1,
+                "createdAt": "2026-06-09T15:49:00.395Z",
+                "updatedAt": "2026-06-09T15:49:00.395Z"
+              },
+              "images": [],
+              "variants": [
+                {
+                  "id": 25,
+                  "productId": 8,
+                  "name": "S-26 Procal Gold 3 - 400g",
+                  "priceIdr": "120000",
+                  "weightG": 400,
+                  "sku": "S26-PROCAL-3-400",
+                  "stock": 30,
+                  "sortOrder": 1,
+                  "createdAt": "2026-06-12T12:34:16.724Z",
+                  "updatedAt": "2026-06-12T12:34:16.724Z",
+                  "images": []
+                },
+                {
+                  "id": 26,
+                  "productId": 8,
+                  "name": "S-26 Procal Gold 3 - 700g",
+                  "priceIdr": "160000",
+                  "weightG": 700,
+                  "sku": "S26-PROCAL-3-700",
+                  "stock": 20,
+                  "sortOrder": 2,
+                  "createdAt": "2026-06-12T12:34:16.724Z",
+                  "updatedAt": "2026-06-12T12:34:16.724Z",
+                  "images": []
+                },
+                {
+                  "id": 27,
+                  "productId": 8,
+                  "name": "INTERNAL_DEFAULT",
+                  "priceIdr": "50000",
+                  "weightG": 100,
+                  "sku": "BRUNO-1781267275602",
+                  "stock": 10,
+                  "sortOrder": 0,
+                  "createdAt": "2026-06-12T12:34:16.724Z",
+                  "updatedAt": "2026-06-12T12:34:16.724Z",
+                  "images": []
+                }
+              ],
+              "highlight": null
+            },
+            "timestamp": "2026-06-12T12:34:18.395Z"
+          }
+  - name: "Success: with image"
+    request:
+      url: "{{baseUrl}}/api/admin/products"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Brunos Product {{runId}} with image",
+            "description": "Test product from Bruno collection",
+            "ingredients": "Test ingredients",
+            "usageInstructions": "Test usage instructions",
+            "weightG": 100,
+            "priceIdr": 50000,
+            "stock": 10,
+            "sku": "BRUNO-{{runId}}",
+            "categoryId": 1,
+            "tags": ["formula", "toddler"],
+            "images": [
+          {
+              "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1781267776/products/uhwc6aieu3jmn6dzibvq.jpg",
+              "publicId": "products/uhwc6aieu3jmn6dzibvq",
+              "width": 180,
+              "height": 180,
+              "fileSize": 6008,
+              "format": "jpg",
+              "altText": "Pikacu",
+              "sortOrder": 0
+          }
+            ],
+            "variants": [
+              {
+                "name": "S-26 Procal Gold 3 - 400g",
+                "priceIdr": 120000,
+                "weightG": 400,
+                "sku": "S26-PROCAL-3-400",
+                "stock": 30,
+                "sortOrder": 0,
+                "images": [
+                  {
+                     "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1781267873/products/v3ot2slx6m4lwbiljakn.jpg",
+              "publicId": "products/v3ot2slx6m4lwbiljakn",
+              "width": 252,
+              "height": 180,
+              "fileSize": 4555,
+              "format": "jpg",
+              "altText": "PP",
+              "sortOrder": 0
+                  }
+                ]
+              },
+              {
+                "name": "S-26 Procal Gold 3 - 700g",
+                "priceIdr": 160000,
+                "weightG": 700,
+                "sku": "S26-PROCAL-3-700",
+                "stock": 20,
+                "sortOrder": 2,
+                "images":[
+                {
+                "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1781267935/products/krjbwna2m1cm0upw1vkw.jpg",
+              "publicId": "products/krjbwna2m1cm0upw1vkw",
+              "width": 4000,
+              "height": 2250,
+              "fileSize": 210509,
+              "format": "jpg",
+              "altText": "bg",
+              "sortOrder": 0
+              }
+                ]
+              }
+            ]
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: x-powered-by
+          value: Express
+        - name: vary
+          value: Origin
+        - name: access-control-allow-credentials
+          value: "true"
+        - name: content-type
+          value: application/json; charset=utf-8
+        - name: content-length
+          value: "2564"
+        - name: etag
+          value: W/"a04-MMB8tbrwOLB2pQaWCGoOqkQNK6s"
+        - name: date
+          value: Fri, 12 Jun 2026 12:54:47 GMT
+        - name: connection
+          value: keep-alive
+        - name: keep-alive
+          value: timeout=5
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 201,
+            "message": [
+              "Product Brunos Product 1781268209682 with image created successfully"
+            ],
+            "data": {
+              "id": 9,
+              "name": "Brunos Product 1781268209682 with image",
+              "slug": "brunos-product-1781268209682-with-image",
+              "isActive": true,
+              "totalSold": 0,
+              "categoryId": 1,
+              "highlightId": null,
+              "tags": [
+                "formula",
+                "toddler"
+              ],
+              "description": "Test product from Bruno collection",
+              "ingredients": "Test ingredients",
+              "usageInstructions": "Test usage instructions",
+              "createdAt": "2026-06-12T12:54:43.223Z",
+              "updatedAt": "2026-06-12T12:54:43.223Z",
+              "metaTitle": null,
+              "metaDescription": null,
+              "category": {
+                "id": 1,
+                "name": "Maternity Supplies",
+                "slug": "maternity-supplies",
+                "description": "Makanan & minuman untuk ibu menyusui",
+                "metaTitle": null,
+                "metaDescription": null,
+                "isActive": true,
+                "sortOrder": 1,
+                "createdAt": "2026-06-09T15:49:00.395Z",
+                "updatedAt": "2026-06-09T15:49:00.395Z"
+              },
+              "images": [
+                {
+                  "id": 64,
+                  "publicId": "products/uhwc6aieu3jmn6dzibvq",
+                  "productId": 9,
+                  "variantId": null,
+                  "reviewId": null,
+                  "categoryId": null,
+                  "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1781267776/products/uhwc6aieu3jmn6dzibvq.jpg",
+                  "sortOrder": 0,
+                  "altText": "Pikacu",
+                  "width": 180,
+                  "height": 180,
+                  "fileSize": 6008,
+                  "format": "jpg"
+                }
+              ],
+              "variants": [
+                {
+                  "id": 28,
+                  "productId": 9,
+                  "name": "S-26 Procal Gold 3 - 400g",
+                  "priceIdr": "120000",
+                  "weightG": 400,
+                  "sku": "S26-PROCAL-3-400",
+                  "stock": 30,
+                  "sortOrder": 0,
+                  "createdAt": "2026-06-12T12:54:43.223Z",
+                  "updatedAt": "2026-06-12T12:54:43.223Z",
+                  "images": [
+                    {
+                      "id": 62,
+                      "publicId": "products/v3ot2slx6m4lwbiljakn",
+                      "productId": null,
+                      "variantId": 28,
+                      "reviewId": null,
+                      "categoryId": null,
+                      "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1781267873/products/v3ot2slx6m4lwbiljakn.jpg",
+                      "sortOrder": 0,
+                      "altText": "PP",
+                      "width": 252,
+                      "height": 180,
+                      "fileSize": 4555,
+                      "format": "jpg"
+                    }
+                  ]
+                },
+                {
+                  "id": 29,
+                  "productId": 9,
+                  "name": "S-26 Procal Gold 3 - 700g",
+                  "priceIdr": "160000",
+                  "weightG": 700,
+                  "sku": "S26-PROCAL-3-700",
+                  "stock": 20,
+                  "sortOrder": 2,
+                  "createdAt": "2026-06-12T12:54:43.223Z",
+                  "updatedAt": "2026-06-12T12:54:43.223Z",
+                  "images": [
+                    {
+                      "id": 63,
+                      "publicId": "products/krjbwna2m1cm0upw1vkw",
+                      "productId": null,
+                      "variantId": 29,
+                      "reviewId": null,
+                      "categoryId": null,
+                      "imageUrl": "https://res.cloudinary.com/dfmgt1iel/image/upload/v1781267935/products/krjbwna2m1cm0upw1vkw.jpg",
+                      "sortOrder": 0,
+                      "altText": "bg",
+                      "width": 4000,
+                      "height": 2250,
+                      "fileSize": 210509,
+                      "format": "jpg"
+                    }
+                  ]
+                },
+                {
+                  "id": 30,
+                  "productId": 9,
+                  "name": "INTERNAL_DEFAULT",
+                  "priceIdr": "50000",
+                  "weightG": 100,
+                  "sku": "BRUNO-1781268209682",
+                  "stock": 10,
+                  "sortOrder": 1,
+                  "createdAt": "2026-06-12T12:54:43.223Z",
+                  "updatedAt": "2026-06-12T12:54:43.223Z",
+                  "images": []
+                }
+              ],
+              "highlight": null
+            },
+            "timestamp": "2026-06-12T12:54:47.098Z"
+          }

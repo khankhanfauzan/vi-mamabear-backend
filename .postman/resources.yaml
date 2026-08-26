@@ -1,0 +1,13 @@
+workspace:
+  id: 5626dab7-e35a-4798-8e14-155d840e7607
+cloudResources:
+  collections:
+    ../postman/collections/MamaBear API: 45205842-29c4ec4b-b32b-4c31-aab8-077a587a8250
+dependencies:
+  collections:
+    45205842-29c4ec4b-b32b-4c31-aab8-077a587a8250:
+      name: MamaBear API
+      path: ..\postman\.dependencies\collections\MamaBear API
+localResources:
+  collections:
+    - ../postman/collections/MamaBear API

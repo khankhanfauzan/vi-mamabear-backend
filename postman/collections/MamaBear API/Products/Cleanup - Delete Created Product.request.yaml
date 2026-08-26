@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/products/{{createdProductId}}"
+method: DELETE
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 200 or 204", function () {
+        pm.response.to.have.status.oneOf([200, 204]);
+      });
+
+      if (pm.environment.get("createdProductId")) {
+        pm.environment.unset("createdProductId");
+      }
+    language: text/javascript
+order: 9999

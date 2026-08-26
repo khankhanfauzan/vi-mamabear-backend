@@ -1,0 +1,22 @@
+info:
+  name: "[ADMIN] Get Invoice"
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/admin/order/{{id}}/invoice"
+  body:
+    type: form-urlencoded
+  auth: inherit
+
+runtime:
+  variables:
+    - name: id
+      value: 019eb26a-12fb-734c-944d-3c0ffcdd6bf3
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

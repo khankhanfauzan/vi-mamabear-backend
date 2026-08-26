@@ -1,0 +1,116 @@
+name: ci
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main", "dev" ]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22.x]
+        #unit-tests: [auth]
+    timeout-minutes: 5
+    env:
+      NODE_ENV: ci
+      RUNNER_OS: Linux
+      PGHOST: localhost
+      PGDATABASE: mamabear
+      PGUSERNAME: postgres
+      PGPASSWORD: pgpasswordci
+      CORS_ORIGIN: "*"
+      JWT_ACCESS_SECRET: blablabla
+      JWT_REFRESH_SECRET: blablablablablabla
+      OPENROUTER_API_KEY:  ${{ secrets.OPENROUTER_API_KEY }}
+      CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+      CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+      CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+      DATABASE_URL: "postgresql://postgres:pgpasswordci@localhost/mamabear?schema=public"
+    steps:
+    - name: Add PostgreSQL binaries to PATH
+      shell: bash
+      run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            echo "$PGBIN" >> $GITHUB_PATH
+          elif [ "$RUNNER_OS" == "Linux" ]; then
+            echo "$(pg_config --bindir)" >> $GITHUB_PATH
+          fi
+
+    - name: Install pgvector
+      run: |
+        sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+        sudo apt-get install postgresql-16-pgvector
+
+    - name: Initialize and start PostgreSQL
+      shell: bash
+      run: |
+        echo "initializing database cluster..."
+
+        # convert backslashes to forward slashes in runner_temp for windows git bash
+        export runner_temp="/tmp"
+        export pghost="${runner_temp//\\//}/postgres"
+        export pgdata="$pghost/pgdata"
+        mkdir -p "$pgdata"
+
+        # initdb requires file for password in non-interactive mode
+        export pwfile="$runner_temp/pwfile"
+        echo "postgres" > "$pwfile"
+        initdb --pgdata="$pgdata" --username="postgres" --pwfile="$pwfile"
+
+        echo "starting postgresql..."
+        echo "unix_socket_directories = '$pghost'" >> "$pgdata/postgresql.conf"
+        pg_ctl -D $pgdata start
+
+        echo "creating user..."
+        psql --host "$pghost" --username="postgres" --dbname="postgres" --command="create user $PGUSERNAME password '$PGPASSWORD' SUPERUSER" --command="\du"
+
+        echo "creating database..."
+
+        createdb --owner="$PGUSERNAME" --username="postgres" "$PGDATABASE"
+
+    - name: Install pgvector extension
+      shell: bash
+      run: |
+        export runner_temp="/tmp"
+        sudo apt-get install -y postgresql-server-dev-all
+        cd $runner_temp
+        git clone --branch v0.8.2 https://github.com/pgvector/pgvector.git
+        cd pgvector
+        make
+        sudo make install
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Build Mailhog docker image
+      run: docker build -t mailhog ./mailhog
+
+    - name: Run Mailhog container
+      run: docker run -d mailhog -p 1025:1025 -p 8025:8025
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Apply migrations and generate Prisma
+      run: |
+        npx prisma migrate deploy
+        npx prisma generate
+
+    - name: Run seeder
+      run : |
+        npx prisma db seed
+
+    - name: Build NestJS application and do smoke tests
+      run: |
+        npx nest build
+        npx nest start &
+        sleep 10
+        npm run test:e2e

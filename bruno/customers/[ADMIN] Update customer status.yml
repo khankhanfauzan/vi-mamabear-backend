@@ -1,0 +1,158 @@
+info:
+  name: "[ADMIN] Update customer status"
+  type: http
+  seq: 3
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/admin/customers/{{customerId}}/status"
+  body:
+    type: json
+    data: |-
+      {
+        "isVerified": true
+      }
+  auth: inherit
+
+runtime:
+  variables:
+    - name: customerId
+      value: d9492654-47c3-459f-849f-76defbd5fa72
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: "Success - Verify (200)"
+    request:
+      url: "{{baseUrl}}/api/admin/customers/d9492654-47c3-459f-849f-76defbd5fa72/status"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "isVerified": true
+          }
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "User verification status updated to true"
+            ],
+            "data": {
+              "id": "d9492654-47c3-459f-849f-76defbd5fa72",
+              "email": "budi.santoso@email.com",
+              "name": "Budi Santoso",
+              "phone": "085678901234",
+              "role": "USER",
+              "isVerified": true,
+              "createdAt": "2026-06-11T15:01:06.323Z",
+              "updatedAt": "2026-06-12T00:53:53.063Z"
+            },
+            "timestamp": "2026-06-12T00:53:52.934Z"
+          }
+  - name: "Success - Unverify (200)"
+    request:
+      url: "{{baseUrl}}/api/admin/customers/d9492654-47c3-459f-849f-76defbd5fa72/status"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "isVerified": false
+          }
+    response:
+      status: 200
+      statusText: "OK"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": true,
+            "statusCode": 200,
+            "message": [
+              "User verification status updated to false"
+            ],
+            "data": {
+              "id": "d9492654-47c3-459f-849f-76defbd5fa72",
+              "email": "budi.santoso@email.com",
+              "name": "Budi Santoso",
+              "phone": "085678901234",
+              "role": "USER",
+              "isVerified": false,
+              "createdAt": "2026-06-11T15:01:06.323Z",
+              "updatedAt": "2026-06-12T00:53:52.932Z"
+            },
+            "timestamp": "2026-06-12T00:53:52.934Z"
+          }
+  - name: "Not Found (404)"
+    request:
+      url: "{{baseUrl}}/api/admin/customers/00000000-0000-0000-0000-000000000000/status"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "isVerified": true
+          }
+    response:
+      status: 404
+      statusText: "Not Found"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 404,
+            "message": [
+              "User with id 00000000-0000-0000-0000-000000000000 not found"
+            ],
+            "data": null,
+            "timestamp": "2026-06-12T00:53:52.934Z"
+          }
+  - name: "Cannot modify self (400)"
+    request:
+      url: "{{baseUrl}}/api/admin/customers/{{ownUserId}}/status"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "isVerified": false
+          }
+    response:
+      status: 400
+      statusText: "Bad Request"
+      headers:
+        - name: Content-Type
+          value: "application/json; charset=utf-8"
+      body:
+        type: json
+        data: |-
+          {
+            "success": false,
+            "statusCode": 400,
+            "message": [
+              "Cannot change your own status"
+            ],
+            "data": null,
+            "timestamp": "2026-06-12T00:53:52.934Z"
+          }

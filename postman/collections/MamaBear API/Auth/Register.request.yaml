@@ -1,0 +1,61 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/register"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "user@email.com",
+      "password": "password123",
+      "name": "Siti Rahayu",
+      "phone": "081234567890"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      // --- Success ---
+      pm.test("Status is 201", function () {
+        pm.response.to.have.status(201);
+      });
+
+      pm.test("Response has message and verificationToken", function () {
+        const json = pm.response.json();
+        pm.expect(json).to.have.property("message").that.is.a("string").and.not.empty;
+        pm.expect(json).to.have.property("verificationToken").that.is.a("string").and.not.empty;
+      });
+
+      // --- Capture verificationToken and created user info ---
+      const json = pm.response.json();
+      if (json.verificationToken) {
+        pm.environment.set("verificationToken", json.verificationToken);
+      }
+
+      // Try to capture created user id/email if returned
+      if (json.id || json.userId) {
+        pm.environment.set("createdUserId", json.id || json.userId);
+      }
+
+      // Capture email from response or request body for later lookup
+      if (json.email) {
+        pm.environment.set("createdUserEmail", json.email);
+      } else {
+        try {
+          const req = JSON.parse(pm.request.body.raw);
+          if (req && req.email) pm.environment.set("createdUserEmail", req.email);
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      // --- Failure ---
+      pm.test("No error field on success", function () {
+        const json = pm.response.json();
+        pm.expect(json).to.not.have.property("error");
+      });
+
+      // --- Cleanup ---
+      // verificationToken is captured above; no extra cleanup needed at this stage
+    language: text/javascript
+order: 2000
