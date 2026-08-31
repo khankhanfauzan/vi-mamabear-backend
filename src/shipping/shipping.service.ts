@@ -151,7 +151,7 @@ export class ShippingService {
     }
     const weight = cart.items.reduce((total, item) => {
       const itemWeight = item.variant?.weightG ?? 0;
-      const quantity = item.quantity ?? 0;
+      const quantity = item.quantity ?? 1;
 
       return total + itemWeight * quantity;
     }, 0);

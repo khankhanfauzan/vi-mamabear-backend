@@ -21,7 +21,7 @@ export class DiscountsService {
     const result = await this.repo.delete(id);
     return {
       success: true,
-      message: `Discount deleted successfully`,
+      message: `Discount ${id} deleted successfully`,
       data: result,
     };
   }
