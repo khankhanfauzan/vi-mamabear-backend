@@ -121,9 +121,11 @@ async function compressImage(fullPath: string): Promise<string> {
 }
 
 async function uploadSeedImage(imagePath: string) {
+  const folder = 'mamabear';
   const normalizedPath = imagePath.replace(/\.[^/.]+$/, '').replace(/\\/g, '/');
-  const cloudinaryPublicId = `mamabear/${normalizedPath}`;
-  const existing = await getCloudinaryImage(cloudinaryPublicId);
+  const cloudinaryPublicId = normalizedPath;
+  const fullPublicId = `${folder}/${cloudinaryPublicId}`;
+  const existing = await getCloudinaryImage(fullPublicId);
 
   if (existing) {
     return {
@@ -146,7 +148,7 @@ async function uploadSeedImage(imagePath: string) {
   const uploadPath =
     size > MAX_FILE_SIZE ? await compressImage(fullPath) : fullPath;
 
-  const uploaded = await uploadLocalImage(uploadPath, '', cloudinaryPublicId);
+  const uploaded = await uploadLocalImage(uploadPath, folder, cloudinaryPublicId);
 
   if (uploadPath !== fullPath) fs.unlinkSync(uploadPath);
 
@@ -383,8 +385,8 @@ async function main() {
 
     type UploadedVariant = {
       variantData: (typeof variants)[number] extends { images?: any }
-        ? Omit<(typeof variants)[number], 'images'>
-        : never;
+      ? Omit<(typeof variants)[number], 'images'>
+      : never;
       uploadedImages: Array<{
         uploaded: UploadedImage;
         sortOrder: number;

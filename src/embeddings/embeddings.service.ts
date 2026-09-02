@@ -40,7 +40,7 @@ export class EmbeddingsService {
     async generateEmbeddingFromString(str: string) {
         var nameEmbedding : any = await this.openrouter.embeddings.generate({
             requestBody: {
-                model: "perplexity/pplx-embed-v1-0.6b",
+                model: "liquid/lfm-2.5-embedding-350m:free",
                 input: str,
                 encodingFormat: "float"
             }
