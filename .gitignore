@@ -64,3 +64,5 @@ postman/.dependencies/
 
 # Local dev
 docker-compose.yml
+Dockerfile
+.dockerignore
