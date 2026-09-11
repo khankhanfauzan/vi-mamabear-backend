@@ -36,6 +36,7 @@ model User {
   orders                  Order[]
   address                 Address[]
   activityLogs            AdminActivityLog[]
+  aiConversations         AiConversation[]
 }
 
 model Product {
@@ -367,4 +368,36 @@ model AdminActivityLog {
     @@index([userId])
     @@index([entity])
     @@index([createdAt])
+}
+
+enum AiRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+model AiConversation {
+  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String      @db.Uuid
+  user      User        @relation(fields: [userId], references: [id])
+  messages  AiMessage[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([userId])
+}
+
+model AiMessage {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversationId String         @db.Uuid
+  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           AiRole
+  content        String
+  blocked        Boolean        @default(false)
+  blockReason    String?
+  tokensUsed     Int            @default(0)
+  model          String         @default("openrouter/default")
+  createdAt      DateTime       @default(now())
+
+  @@index([conversationId])
 }
