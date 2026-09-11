@@ -40,9 +40,8 @@ export class PaymentService {
             },
             customer_details: customerDetails,
             callbacks: {
-                success: this.FRONTEND_URL + "/payment/success",
-                pending: this.FRONTEND_URL + "/payment/pending",
-                error: this.FRONTEND_URL + "/payment/error",
+                finish: `${this.FRONTEND_URL}/checkout/success/${orderId}`,
+                error: `${this.FRONTEND_URL}/checkout/payment/${orderId}`,
             }
         } as any);
         const updatedOrder = await this.orderRepository.update({ id: orderId }, { paymentRedirectUrl: transaction.redirect_url });
@@ -67,6 +66,15 @@ export class PaymentService {
             .digest('hex');
             if (hash !== signatureKey) {
                 throw new UnauthorizedException("Signature key and hash does not match");
+            }
+
+            if (orderId && typeof orderId === 'string' && orderId.startsWith('payment_notif_test_')) {
+                this.logger.info(`Midtrans test notification acknowledged: ${orderId}`);
+                return {
+                    success: true,
+                    message: "Test notification processed successfully",
+                    data: null,
+                };
             }
             switch (transactionStatus) {
                 case 'capture':

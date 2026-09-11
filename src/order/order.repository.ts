@@ -186,7 +186,7 @@ export class OrderRepository {
         throw new UnprocessableEntityException(
           `Cannot process product sold increment: order with orderId=${orderId} has no order items`,
         );
-      return order.orderItems.forEach(async (item) => {
+      for (const item of order.orderItems) {
         const currentVariant = await tx.productVariant.findUnique({
           where: {
             id: item.variantId,
@@ -196,11 +196,11 @@ export class OrderRepository {
         });
         if (!currentVariant)
           throw new BadRequestException(
-            `orderItems forEach: Variant variantId=${item.variantId} of Product productId=${item.productId} does not exist`,
+            `orderItems: Variant variantId=${item.variantId} of Product productId=${item.productId} does not exist`,
           );
         if (currentVariant.stock < item.quantity)
           throw new BadRequestException(
-            `orderItems forEach: Cannot decrement stock of variantId=${item.variantId} by ${item.quantity} (quantity must be less than ${currentVariant.stock})`,
+            `orderItems: Cannot decrement stock of variantId=${item.variantId} by ${item.quantity} (quantity must be less than ${currentVariant.stock})`,
           );
         const product = await tx.product.update({
           where: {
@@ -212,7 +212,7 @@ export class OrderRepository {
             },
           },
         });
-        const variant = this.prisma.productVariant.update({
+        await tx.productVariant.update({
           where: {
             id: item.variantId,
             productId: product.id,
@@ -223,8 +223,8 @@ export class OrderRepository {
             },
           },
         });
-        return variant;
-      });
+      }
+      return order;
     });
   }
 
