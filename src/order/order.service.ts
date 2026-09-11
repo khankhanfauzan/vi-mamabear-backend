@@ -237,8 +237,10 @@ export class OrderService {
       ShippingAddress:
         order.shippingAddress?.completeAddress ?? 'Address not found',
       subtotalIdr: order.subtotalIdr.toString(),
+      productDiscountIdr: order.productDiscountIdr.toString(),
       shippingCostIdr: order.shippingCostIdr.toString(),
-      totalIdr: (order.subtotalIdr + order.shippingCostIdr).toString(),
+      shippingDiscountIdr: order.shippingDiscountIdr.toString(),
+      totalIdr: order.grandTotalIdr.toString(),
       PaymentMethod: order.paymentMethod?.toUpperCase() ?? 'Method not found',
       InvoicePaymentStatus: invoicePaymentStatus,
     };

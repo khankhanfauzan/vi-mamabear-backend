@@ -2,8 +2,8 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { PatchCourierDto } from './dto/patch-courier.dto';
 
-// Keep includes minimal to reduce payload size (eager loading optimized)
 const CART_INCLUDE = {
+  promoCode: true,
   items: {
     include: {
       product: {

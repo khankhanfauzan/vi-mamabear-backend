@@ -31,6 +31,7 @@ import { OrderModule } from './order/order.module';
 import { ReportsModule } from './reports/reports.module';
 import { ActivityLogModule } from './activity-log/activity-log.module';
 import { AiModule } from './ai/ai.module';
+import { PromoModule } from './promo/promo.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { AiModule } from './ai/ai.module';
     ReportsModule,
     ActivityLogModule,
     AiModule,
+    PromoModule,
   ],
   controllers: [AppController],
   providers: [AppService, CleanupService],

@@ -48,6 +48,7 @@ export class OrderRepository {
       const cart = await tx.cart.findUnique({
         where: { id: dto.cartId },
         include: {
+          promoCode: true,
           items: {
             include: {
               variant: true,
@@ -84,7 +85,11 @@ export class OrderRepository {
           subtotalIdr: cart.subtotalIdr,
           taxIdr: cart.taxIdr,
           shippingCostIdr: cart.shippingCostIdr,
-          grandTotalIdr: cart.subtotalIdr + cart.taxIdr + cart.shippingCostIdr,
+          promoCodeId: cart.promoCodeId,
+          promoCode: cart.promoCodeString,
+          productDiscountIdr: cart.productDiscountIdr,
+          shippingDiscountIdr: cart.shippingDiscountIdr,
+          grandTotalIdr: (cart.subtotalIdr - cart.productDiscountIdr) + (cart.shippingCostIdr - cart.shippingDiscountIdr) + cart.taxIdr,
           courierName: cart.courierName,
           courierCode: cart.courierCode,
           shippingMethod: cart.shippingMethod,
@@ -127,6 +132,20 @@ export class OrderRepository {
 
       await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
       await tx.cart.delete({ where: { id: cart.id } });
+
+      if (cart.promoCodeId) {
+        await tx.promoUsage.create({
+          data: {
+            promoCodeId: cart.promoCodeId,
+            userId: userId,
+            orderId: order.id,
+          },
+        });
+        await tx.promoCode.update({
+          where: { id: cart.promoCodeId },
+          data: { usageCount: { increment: 1 } },
+        });
+      }
 
       return order;
     });

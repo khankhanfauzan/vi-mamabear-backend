@@ -332,4 +332,57 @@ export class CartController {
       throw error;
     }
   }
+  @Post('promo')
+  async applyPromo(
+    @GetUserId() userId: string | undefined,
+    @Req() req: Request,
+    @Body('code') code: string,
+  ) {
+    try {
+      const sessionId = req.cookies?.sessionId;
+      const result = await this.cartService.applyPromo(userId, sessionId, code);
+      this.logger.info({
+        message: 'Promo code applied',
+        endpoint: 'POST /cart/promo',
+        userId: userId || 'guest',
+        code,
+        status: 'success',
+      });
+      return result;
+    } catch (error: any) {
+      this.logger.error({
+        message: 'Failed to apply promo code',
+        endpoint: 'POST /cart/promo',
+        status: 'error',
+        error: error.message,
+      });
+      throw error;
+    }
+  }
+
+  @Delete('promo')
+  async removePromo(
+    @GetUserId() userId: string | undefined,
+    @Req() req: Request,
+  ) {
+    try {
+      const sessionId = req.cookies?.sessionId;
+      const result = await this.cartService.removePromo(userId, sessionId);
+      this.logger.info({
+        message: 'Promo code removed',
+        endpoint: 'DELETE /cart/promo',
+        userId: userId || 'guest',
+        status: 'success',
+      });
+      return result;
+    } catch (error: any) {
+      this.logger.error({
+        message: 'Failed to remove promo code',
+        endpoint: 'DELETE /cart/promo',
+        status: 'error',
+        error: error.message,
+      });
+      throw error;
+    }
+  }
 }
