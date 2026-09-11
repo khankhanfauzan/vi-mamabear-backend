@@ -16,7 +16,9 @@ export interface InvoiceStructure {
   OrderedItem: InvoiceOrderItem[];
   ShippingAddress: string; //complete address
   subtotalIdr: string;
+  productDiscountIdr?: string;
   shippingCostIdr: string;
+  shippingDiscountIdr?: string;
   totalIdr: string;
   PaymentMethod: string;
   InvoicePaymentStatus: InvoicePaymentStatus; //only paid or unpaid

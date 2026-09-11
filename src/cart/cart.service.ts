@@ -10,12 +10,16 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { randomUUID } from 'crypto';
 import { PatchCourierDto } from './dto/patch-courier.dto';
 
+import { PromoService } from '@/promo/promo.service';
+import { PromoDiscountType } from '@/generated/prisma';
+
 @Injectable()
 export class CartService {
   constructor(
     private readonly cartRepo: CartRepository,
     private readonly prisma: PrismaService,
     private readonly logger: PinoLogger,
+    private readonly promoService: PromoService,
   ) {
     this.logger.setContext(CartService.name);
   }
@@ -116,6 +120,7 @@ export class CartService {
       });
 
       await this.cartRepo.recalculateCartTotals(cart.id);
+      await this.recalculateDiscounts(cart.id);
 
       this.logger.info({
         message: 'Item added to cart',
@@ -181,6 +186,7 @@ export class CartService {
       );
 
       await this.cartRepo.recalculateCartTotals(cartItem.cart.id);
+      await this.recalculateDiscounts(cartItem.cart.id);
       this.logger.info({
         message: 'Cart item quantity updated',
         itemId,
@@ -271,6 +277,7 @@ export class CartService {
 
       const result = await this.cartRepo.deleteCartItem(itemsId);
       await this.cartRepo.recalculateCartTotals(cartItem.cart.id);
+      await this.recalculateDiscounts(cartItem.cart.id);
       this.logger.info({
         message: 'Cart item removed',
         itemId: itemsId,
@@ -293,6 +300,7 @@ export class CartService {
     try {
       const result = await this.cartRepo.deleteCartItems(cartId);
       await this.cartRepo.recalculateCartTotals(cartId);
+      await this.recalculateDiscounts(cartId);
       this.logger.info({
         message: 'Cart cleared',
         cartId,
@@ -407,11 +415,112 @@ export class CartService {
   }
 
   async clearCourierInformation(cartId: string) {
-    return this.cartRepo.clearCourierInformation(cartId);
+    const updated = await this.cartRepo.clearCourierInformation(cartId);
+    return this.recalculateDiscounts(cartId);
   }
 
   async updateCourierInformation(cartId: string, dto: PatchCourierDto) {
-    return this.cartRepo.updateCourierInformation(cartId, dto);
+    const updated = await this.cartRepo.updateCourierInformation(cartId, dto);
+    return this.recalculateDiscounts(cartId);
+  }
+
+  // --- Promo Logic ---
+  async applyPromo(userId: string | undefined, sessionId: string | undefined, code: string) {
+    if (!userId) {
+      throw new BadRequestException('Harap login terlebih dahulu untuk menggunakan kode promo');
+    }
+
+    const { cart } = await this.getOrCreateCart(userId, sessionId);
+    
+    // Validate promo
+    const promo = await this.promoService.validatePromoCode(code, userId, cart.subtotalIdr);
+    
+    // Update Cart with promo info
+    await this.prisma.cart.update({
+      where: { id: cart.id },
+      data: {
+        promoCodeId: promo.id,
+        promoCodeString: promo.code,
+      },
+    });
+
+    return this.recalculateDiscounts(cart.id);
+  }
+
+  async removePromo(userId: string | undefined, sessionId: string | undefined) {
+    const cart = await this.cartRepo.findCartWithItems(userId, sessionId);
+    if (!cart) throw new NotFoundException('Cart not found');
+
+    await this.prisma.cart.update({
+      where: { id: cart.id },
+      data: {
+        promoCodeId: null,
+        promoCodeString: null,
+        productDiscountIdr: 0,
+        shippingDiscountIdr: 0,
+      },
+    });
+
+    return this.cartRepo.findCartById(cart.id);
+  }
+
+  async recalculateDiscounts(cartId: string) {
+    const cart = await this.cartRepo.findCartById(cartId);
+    if (!cart) return null;
+
+    let productDiscountIdr = 0;
+    let shippingDiscountIdr = 0;
+
+    if (cart.promoCode) {
+      const promo = cart.promoCode;
+      
+      // Calculate product discount
+      if (promo.discountType === PromoDiscountType.PRODUCT_PERCENTAGE) {
+        productDiscountIdr = Math.floor(cart.subtotalIdr * (Number(promo.discountValue) / 100));
+        if (promo.maxDiscountIdr && productDiscountIdr > promo.maxDiscountIdr) {
+          productDiscountIdr = promo.maxDiscountIdr;
+        }
+      } else if (promo.discountType === PromoDiscountType.PRODUCT_FIXED) {
+        productDiscountIdr = Number(promo.discountValue);
+      }
+
+      if (productDiscountIdr > cart.subtotalIdr) {
+        productDiscountIdr = cart.subtotalIdr;
+      }
+
+      // Calculate shipping discount
+      if (promo.discountType === PromoDiscountType.FREE_SHIPPING && cart.shippingCostIdr > 0) {
+        if (Number(promo.discountValue) > 0) {
+          shippingDiscountIdr = Number(promo.discountValue);
+        } else if (promo.maxShippingDiscountIdr) {
+          shippingDiscountIdr = promo.maxShippingDiscountIdr;
+        } else {
+          shippingDiscountIdr = cart.shippingCostIdr; // Full free shipping
+        }
+
+        if (shippingDiscountIdr > cart.shippingCostIdr) {
+          shippingDiscountIdr = cart.shippingCostIdr;
+        }
+      }
+
+      await this.prisma.cart.update({
+        where: { id: cartId },
+        data: {
+          productDiscountIdr,
+          shippingDiscountIdr,
+        },
+      });
+    } else {
+      await this.prisma.cart.update({
+        where: { id: cartId },
+        data: {
+          productDiscountIdr: 0,
+          shippingDiscountIdr: 0,
+        },
+      });
+    }
+
+    return this.cartRepo.findCartById(cartId); // returns updated cart
   }
 
   // Cleanup Expired Carts (for cron)

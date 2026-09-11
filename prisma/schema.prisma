@@ -14,18 +14,24 @@ enum Role {
   SUPERADMIN
 }
 
+enum PromoDiscountType {
+  PRODUCT_PERCENTAGE
+  PRODUCT_FIXED
+  FREE_SHIPPING
+}
+
 model User {
-  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email                   String    @unique
+  id                      String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                   String             @unique
   hashedPassword          String
   name                    String
   phone                   String
-  role                    Role      @default(USER)
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime? @updatedAt
+  role                    Role               @default(USER)
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime?          @updatedAt
   reviews                 Review[]
-  isVerified              Boolean   @default(false)
-  isBlocked               Boolean   @default(false)
+  isVerified              Boolean            @default(false)
+  isBlocked               Boolean            @default(false)
   verificationToken       String?
   verificationTokenExpiry DateTime?
   resetToken              String?
@@ -37,6 +43,7 @@ model User {
   address                 Address[]
   activityLogs            AdminActivityLog[]
   aiConversations         AiConversation[]
+  promoUsages             PromoUsage[]
 }
 
 model Product {
@@ -44,7 +51,7 @@ model Product {
   name              String
   slug              String                       @unique
   isActive          Boolean                      @default(true)
-  totalSold Int @default(0)
+  totalSold         Int                          @default(0)
   categoryId        Int?
   highlightId       Int?
   images            Image[]
@@ -59,26 +66,26 @@ model Product {
   createdAt         DateTime                     @default(now())
   updatedAt         DateTime?                    @updatedAt
 
-  inOrderItems      OrderItem[]
+  inOrderItems OrderItem[]
 
-  category          Category?                    @relation(fields: [categoryId], references: [id])
-  highlight         Highlight?                   @relation(fields: [highlightId], references: [id])
-  metaTitle   String?
+  category        Category?  @relation(fields: [categoryId], references: [id])
+  highlight       Highlight? @relation(fields: [highlightId], references: [id])
+  metaTitle       String?
   metaDescription String?
 }
 
 model Image {
-  id        Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  publicId  String   @unique
+  publicId String @unique
 
-  productId Int?
-  variantId Int?
-  reviewId Int?
+  productId  Int?
+  variantId  Int?
+  reviewId   Int?
   categoryId Int?
 
   // metadata
-  imageUrl String @default("https://placehold.co/600x400")
+  imageUrl  String  @default("https://placehold.co/600x400")
   sortOrder Int
   altText   String?
   width     Int?
@@ -86,10 +93,10 @@ model Image {
   fileSize  Int?
   format    String?
 
-  product   Product?         @relation(fields:  [productId],   references:  [id],  onDelete:  SetNull)
-  variant   ProductVariant?  @relation(fields:  [variantId],   references:  [id],  onDelete:  SetNull)
-  review    Review?          @relation(fields:  [reviewId],    references:  [id],  onDelete:  SetNull)
-  category  Category?        @relation(fields:  [categoryId],  references:  [id],  onDelete:  SetNull)
+  product  Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variant  ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  review   Review?         @relation(fields: [reviewId], references: [id], onDelete: SetNull)
+  category Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 }
 
 model Discount {
@@ -103,42 +110,43 @@ model Discount {
 }
 
 model ProductVariant {
-  id         Int            @id @default(autoincrement())
+  id         Int         @id @default(autoincrement())
   productId  Int
   name       String
   images     Image[]
-  priceIdr   Decimal        @db.Decimal(10, 2)
+  priceIdr   Decimal     @db.Decimal(10, 2)
   discount   Discount?
   weightG    Int
   sku        String?
-  stock      Int            @default(0)
-  sortOrder  Int            @default(0)
+  stock      Int         @default(0)
+  sortOrder  Int         @default(0)
   cartItems  CartItem[]
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime?      @updatedAt
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime?   @updatedAt
   orderItems OrderItem[]
 
-  product    Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
   @@unique([productId, sortOrder], name: "variantCompositeIdentifier")
 }
 
 model Highlight {
-  id          Int       @id @default(autoincrement())
-  name        String
-  slug        String    @unique
-  description String?
-  isActive    Boolean   @default(true)
-  products    Product[]
-  metaTitle   String?
+  id              Int       @id @default(autoincrement())
+  name            String
+  slug            String    @unique
+  description     String?
+  isActive        Boolean   @default(true)
+  products        Product[]
+  metaTitle       String?
   metaDescription String?
 }
 
 model Category {
-  id          Int     @id @default(autoincrement())
-  name        String
-  slug        String  @unique
-  description String 
-  metaTitle   String?
+  id              Int     @id @default(autoincrement())
+  name            String
+  slug            String  @unique
+  description     String
+  metaTitle       String?
   metaDescription String?
 
   isActive  Boolean   @default(true)
@@ -150,68 +158,118 @@ model Category {
 }
 
 model Review {
-  id         Int     @id @default(autoincrement())
+  id         Int    @id @default(autoincrement())
   title      String
-  reviewerId String  @db.Uuid
+  reviewerId String @db.Uuid
   productId  Int
 
-  rating      Float    @default(0.0)
-  numUpvotes  Int?     @default(0)
+  rating      Float   @default(0.0)
+  numUpvotes  Int?    @default(0)
   description String
   images      Image[]
 
   createdAt DateTime @default(now())
 
-  reviewer   User    @relation(fields: [reviewerId], references: [id], onDelete: SetNull)
-  product    Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  reviewer User    @relation(fields: [reviewerId], references: [id], onDelete: SetNull)
+  product  Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model PromoCode {
+  id            Int               @id @default(autoincrement())
+  code          String            @unique
+  title         String
+  description   String?
+  discountType  PromoDiscountType
+  discountValue Decimal           @db.Decimal(12, 2)
+
+  minSpendIdr            Int  @default(0)
+  maxDiscountIdr         Int?
+  maxShippingDiscountIdr Int?
+
+  usageLimit      Int?
+  usageCount      Int      @default(0)
+  maxUsagePerUser Int      @default(1)
+  isActive        Boolean  @default(true)
+  startedAt       DateTime @default(now())
+  expiresAt       DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  carts  Cart[]
+  orders Order[]
+  usages PromoUsage[]
+
+  @@index([code])
+}
+
+model PromoUsage {
+  id          Int    @id @default(autoincrement())
+  promoCodeId Int
+  userId      String @db.Uuid
+  orderId     String @db.Uuid
+
+  createdAt DateTime @default(now())
+
+  promoCode PromoCode @relation(fields: [promoCodeId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+  order     Order     @relation(fields: [orderId], references: [id])
 }
 
 model Cart {
-  id        String     @id @default(uuid(7)) @db.Uuid
-  userId    String?    @db.Uuid
-  sessionId String?    @unique
+  id        String  @id @default(uuid(7)) @db.Uuid
+  userId    String? @db.Uuid
+  sessionId String? @unique
 
   // UPDATE WHEN cart.items are updated
-  subtotalIdr      Int           @default(0)
-  taxIdr           Int           @default(0)
+  subtotalIdr Int @default(0)
+  taxIdr      Int @default(0)
+
+  // PROMO INFO
+  promoCodeId         Int?
+  promoCode           PromoCode? @relation(fields: [promoCodeId], references: [id], onDelete: SetNull)
+  promoCodeString     String? // Snapshot of the promo code text
+  productDiscountIdr  Int        @default(0)
+  shippingDiscountIdr Int        @default(0)
 
   // courier info: calc based on what user selected // PATCH KE CART DURING CHECKOUT
-  shippingCostIdr  Int           @default(0)
-  courierName      String?
-  courierCode      String?
-  shippingMethod   String?
+  shippingCostIdr Int     @default(0)
+  courierName     String?
+  courierCode     String?
+  shippingMethod  String?
   // courier info
 
-  items     CartItem[]
+  items CartItem[]
 
-  orderId   String?    @unique // murni string uuid
+  orderId String? @unique // murni string uuid
 
-  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   expiresAt DateTime?
+
   @@index([userId])
   @@index([sessionId])
   @@index([expiresAt])
 }
 
 model CartItem {
-  id        String          @id @default(uuid(7)) @db.Uuid
-  cartId    String          @db.Uuid
+  id        String  @id @default(uuid(7)) @db.Uuid
+  cartId    String  @db.Uuid
   productId Int
   variantId Int
-  quantity  Int             @default(1)
-  price     Decimal         @db.Decimal(10, 2)
+  quantity  Int     @default(1)
+  price     Decimal @db.Decimal(10, 2)
 
-  createdAt DateTime        @default(now())
-  cart      Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product   Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
-  variant   ProductVariant  @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+  cart      Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
   @@unique([cartId, productId, variantId])
   @@index([cartId])
   @@index([productId])
 }
-
 
 enum OrderStatus {
   PAYMENT_PENDING // for midtrans pending
@@ -228,146 +286,155 @@ enum OrderStatus {
 }
 
 model Order {
-  id               String        @id @default(uuid(7)) @db.Uuid
-  userId           String        @db.Uuid
-  orderItems       OrderItem[]
-  status           OrderStatus   @default(PAYMENT_PENDING) 
+  id         String      @id @default(uuid(7)) @db.Uuid
+  userId     String      @db.Uuid
+  orderItems OrderItem[]
+  status     OrderStatus @default(PAYMENT_PENDING)
 
-  receivedExpiresAt DateTime?    // auto expire (set when RECEIVED)
+  receivedExpiresAt DateTime? // auto expire (set when RECEIVED)
 
   // from checkout
-  notes            String?
+  notes String?
+
+  // PROMO INFO
+  promoCodeId         Int?
+  promoCodeRel        PromoCode? @relation(fields: [promoCodeId], references: [id], onDelete: SetNull)
+  promoCode           String? // snapshot
+  productDiscountIdr  Int        @default(0)
+  shippingDiscountIdr Int        @default(0)
 
   // FROM CART //
-  subtotalIdr      Int           @default(0)
-  taxIdr           Int           @default(0)
-  shippingCostIdr  Int           @default(0)
-  courierName      String?
-  courierCode      String?
-  shippingMethod   String?
+  subtotalIdr     Int     @default(0)
+  taxIdr          Int     @default(0)
+  shippingCostIdr Int     @default(0)
+  courierName     String?
+  courierCode     String?
+  shippingMethod  String?
   // FROM CART //
 
   // add when order create
   paymentRedirectUrl String?
-  grandTotalIdr Int             @default(0)
+  grandTotalIdr      Int     @default(0)
 
   // add later when get courier
-  trackingNumber   String?
+  trackingNumber String?
 
   // add when midtrans update order status
-  paymentMethod    String?
+  paymentMethod String?
 
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user                 User                 @relation(fields: [userId], references: [id])
-  orderStatusHistory   OrderStatusHistory[]
-  shippingAddress      OrderAddress?
+  user               User                 @relation(fields: [userId], references: [id])
+  orderStatusHistory OrderStatusHistory[]
+  shippingAddress    OrderAddress?
+  promoUsages        PromoUsage[]
 }
 
 model OrderItem {
-  id        String          @id @default(uuid(7)) @db.Uuid
-  orderId   String          @db.Uuid
+  id        String  @id @default(uuid(7)) @db.Uuid
+  orderId   String  @db.Uuid
   productId Int
   variantId Int
-  quantity  Int             @default(1)
-  price     Decimal         @db.Decimal(10, 2)
+  quantity  Int     @default(1)
+  price     Decimal @db.Decimal(10, 2)
 
-  createdAt DateTime        @default(now())
-  order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product   Product         @relation(fields: [productId], references: [id])
-  variant   ProductVariant  @relation(fields: [variantId], references: [id])
+  createdAt DateTime       @default(now())
+  order     Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product        @relation(fields: [productId], references: [id])
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+
   @@unique([orderId, productId, variantId])
   @@index([orderId])
   @@index([productId])
 }
 
 model OrderStatusHistory {
-  id        Int         @id @default(autoincrement())
-  orderId   String      @db.Uuid 
-  status    OrderStatus
-  notes     String?
+  id      Int         @id @default(autoincrement())
+  orderId String      @db.Uuid
+  status  OrderStatus
+  notes   String?
 
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  order Order @relation(fields: [orderId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  order     Order    @relation(fields: [orderId], references: [id])
 }
 
 model OrderAddress {
-    id              Int      @id @default(autoincrement())
-    orderId         String   @unique @db.Uuid
-    name             String
-    phone            String
+  id      Int    @id @default(autoincrement())
+  orderId String @unique @db.Uuid
+  name    String
+  phone   String
 
-    // information and validation is coming from Raja Ongkir API
-    provinceId       Int          
-    provinceName     String       
-    cityId           Int          
-    cityName         String       
-    districtId       Int          
-    districtName     String       
-    subdistrictId    Int            //used for shipping cost calculation
-    subdistrictName  String
-    postalCode       String        //included in subdistrict validation response
+  // information and validation is coming from Raja Ongkir API
+  provinceId      Int
+  provinceName    String
+  cityId          Int
+  cityName        String
+  districtId      Int
+  districtName    String
+  subdistrictId   Int //used for shipping cost calculation
+  subdistrictName String
+  postalCode      String //included in subdistrict validation response
 
-    //other information, no validation, user's responsibility
-    road             String        //Jalan, no rumah etc
-    completeAddress  String        //Append all address information
-    detail           String?        //Sebelah rumah pak RT
-    usedFor          String        //Kantor, Rumah 
+  //other information, no validation, user's responsibility
+  road            String //Jalan, no rumah etc
+  completeAddress String //Append all address information
+  detail          String? //Sebelah rumah pak RT
+  usedFor         String //Kantor, Rumah 
 
-    order Order @relation(fields: [orderId], references: [id])
+  order Order @relation(fields: [orderId], references: [id])
 }
 
 model Setting {
-  id          Int      @id @default(autoincrement())
-  key         String   @unique
+  id          Int       @id @default(autoincrement())
+  key         String    @unique
   value       String
   type        String
   description String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
   updatedAt   DateTime? @updatedAt
 }
 
 model Address {
-    id               Int     @id  @default(autoincrement())
-    userId           String  @db.Uuid 
-    name             String
-    phone            String
+  id     Int    @id @default(autoincrement())
+  userId String @db.Uuid
+  name   String
+  phone  String
 
-    // information and validation is coming from Raja Ongkir API
-    provinceId       Int          
-    provinceName     String       
-    cityId           Int          
-    cityName         String       
-    districtId       Int          
-    districtName     String       
-    subdistrictId    Int            //used for shipping cost calculation
-    subdistrictName  String
-    postalCode       String        //included in subdistrict validation response
-    
-    //other information, no validation, user's responsibility
-    road             String        //Jalan, no rumah etc
-    completeAddress  String        //Append all address information
-    detail           String?        //Sebelah rumah pak RT
-    usedFor          String        //Kantor, Rumah 
+  // information and validation is coming from Raja Ongkir API
+  provinceId      Int
+  provinceName    String
+  cityId          Int
+  cityName        String
+  districtId      Int
+  districtName    String
+  subdistrictId   Int //used for shipping cost calculation
+  subdistrictName String
+  postalCode      String //included in subdistrict validation response
 
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  //other information, no validation, user's responsibility
+  road            String //Jalan, no rumah etc
+  completeAddress String //Append all address information
+  detail          String? //Sebelah rumah pak RT
+  usedFor         String //Kantor, Rumah 
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model AdminActivityLog {
-    id        Int      @id @default(autoincrement())
-    userId    String   @db.Uuid
-    action    String
-    entity    String
-    entityId  String?
-    createdAt DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  userId    String   @db.Uuid
+  action    String
+  entity    String
+  entityId  String?
+  createdAt DateTime @default(now())
 
-    user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
-    @@index([userId])
-    @@index([entity])
-    @@index([createdAt])
+  @@index([userId])
+  @@index([entity])
+  @@index([createdAt])
 }
 
 enum AiRole {
