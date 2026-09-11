@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, Query } from '@nestjs/common';
 import { PromoService } from './promo.service';
 import { CreatePromoDto } from './dto/create-promo.dto';
 import { UpdatePromoDto } from './dto/update-promo.dto';
@@ -13,9 +13,14 @@ export class PromoController {
     return this.promoService.create(createPromoDto);
   }
 
-  @Get('admin/promo')
-  findAll() {
-    return this.promoService.findAll();
+  @Get(['admin/promo', 'admin/promos'])
+  findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNumber = page ? parseInt(page, 10) : undefined;
+    const limitNumber = limit ? parseInt(limit, 10) : undefined;
+    return this.promoService.findAll(pageNumber, limitNumber);
   }
 
   @Get('admin/promo/:id')

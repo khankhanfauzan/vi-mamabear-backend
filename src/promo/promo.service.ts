@@ -16,7 +16,29 @@ export class PromoService {
     });
   }
 
-  async findAll() {
+  async findAll(page?: number, limit?: number) {
+    if (page && limit) {
+      const skip = (page - 1) * limit;
+      const [data, total] = await Promise.all([
+        this.prisma.promoCode.findMany({
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' },
+        }),
+        this.prisma.promoCode.count(),
+      ]);
+
+      return {
+        data,
+        meta: {
+          total,
+          page,
+          lastPage: Math.ceil(total / limit),
+          limit,
+        },
+      };
+    }
+
     return this.prisma.promoCode.findMany({
       orderBy: { createdAt: 'desc' },
     });
