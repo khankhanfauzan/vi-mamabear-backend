@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AiService } from './ai.service';
 import { ChatDto } from './dto/chat.dto';
@@ -41,5 +49,18 @@ export class AiController {
     @Param('conversationId') conversationId: string,
   ) {
     return this.aiService.getConversationHistory(conversationId, userId);
+  }
+
+  @Delete('conversations/:conversationId')
+  @ApiOperation({
+    summary: 'Hapus percakapan AI',
+    description:
+      'Menghapus satu percakapan dan semua pesannya (validasi ownership)',
+  })
+  deleteConversation(
+    @GetUserId() userId: string,
+    @Param('conversationId') conversationId: string,
+  ) {
+    return this.aiService.deleteConversation(userId, conversationId);
   }
 }

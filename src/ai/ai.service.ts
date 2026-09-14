@@ -176,4 +176,25 @@ export class AiService {
 
     return messages;
   }
+
+  async deleteConversation(
+    userId: string,
+    conversationId: string,
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      await this.aiRepo.deleteConversation(conversationId, userId);
+      return {
+        success: true,
+        message: 'Percakapan berhasil dihapus',
+      };
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === 'CONVERSATION_NOT_FOUND'
+      ) {
+        throw new NotFoundException('Percakapan tidak ditemukan.');
+      }
+      throw error;
+    }
+  }
 }
