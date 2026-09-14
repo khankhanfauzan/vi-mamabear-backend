@@ -86,4 +86,14 @@ export class AiRepository {
       },
     });
   }
+
+  async deleteConversation(conversationId: string, userId: string) {
+    const result = await this.prisma.aiConversation.deleteMany({
+      where: { id: conversationId, userId },
+    });
+    if (result.count === 0) {
+      throw new Error('CONVERSATION_NOT_FOUND');
+    }
+    return result;
+  }
 }
