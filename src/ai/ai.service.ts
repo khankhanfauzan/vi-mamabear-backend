@@ -9,6 +9,8 @@ import { OpenRouterClient } from './openrouter/openrouter.client';
 import { ChatDto } from './dto/chat.dto';
 import { ChatResponseDto } from './dto/chat-response.dto';
 import { AiRole } from '@/generated/prisma';
+import { ConversationSummaryDto } from './dto/conversation-summary.dto';
+import { ConversationHistoryDto } from './dto/conversation-history.dto';
 
 const MAX_INPUT_LENGTH = 1000;
 const MAX_CONVERSATIONS_PER_USER = 50;
@@ -98,6 +100,57 @@ export class AiService {
         reply: result.content,
         blocked: false,
       },
+    };
+  }
+
+  async getConversations(userId: string): Promise<ConversationSummaryDto[]> {
+    const conversations = await this.aiRepo.findConversationsByUser(userId);
+
+    return conversations.map((conv) => ({
+      id: conv.id,
+      userId: conv.userId,
+      createdAt: conv.createdAt,
+      updatedAt: conv.updatedAt,
+      lastMessage: conv.messages[0]
+        ? {
+            id: conv.messages[0].id,
+            role: conv.messages[0].role,
+            content: conv.messages[0].content,
+            createdAt: conv.messages[0].createdAt,
+          }
+        : null,
+    }));
+  }
+
+  async getConversationHistory(
+    conversationId: string,
+    userId: string,
+  ): Promise<ConversationHistoryDto> {
+    const conversation = await this.aiRepo.findMessagesByConversationId(
+      conversationId,
+      userId,
+    );
+
+    if (!conversation) {
+      throw new NotFoundException('Percakapan tidak ditemukan.');
+    }
+
+    return {
+      id: conversation.id,
+      userId: conversation.userId,
+      createdAt: conversation.createdAt,
+      updatedAt: conversation.updatedAt,
+      messages: conversation.messages.map((msg) => ({
+        id: msg.id,
+        conversationId: msg.conversationId,
+        role: msg.role,
+        content: msg.content,
+        blocked: msg.blocked,
+        blockReason: msg.blockReason,
+        tokensUsed: msg.tokensUsed,
+        model: msg.model,
+        createdAt: msg.createdAt,
+      })),
     };
   }
 

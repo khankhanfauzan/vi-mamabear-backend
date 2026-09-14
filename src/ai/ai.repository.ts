@@ -62,4 +62,28 @@ export class AiRepository {
       where: { userId },
     });
   }
+
+  async findConversationsByUser(userId: string) {
+    return this.prisma.aiConversation.findMany({
+      where: { userId },
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+    });
+  }
+
+  async findMessagesByConversationId(conversationId: string, userId: string) {
+    return this.prisma.aiConversation.findFirst({
+      where: { id: conversationId, userId },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    });
+  }
 }
