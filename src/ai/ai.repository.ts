@@ -63,6 +63,13 @@ export class AiRepository {
     });
   }
 
+  async findOldestConversationByUser(userId: string) {
+    return this.prisma.aiConversation.findFirst({
+      where: { userId },
+      orderBy: { updatedAt: 'asc' },
+    });
+  }
+
   async findConversationsByUser(userId: string) {
     return this.prisma.aiConversation.findMany({
       where: { userId },

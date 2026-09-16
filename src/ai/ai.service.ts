@@ -1,6 +1,6 @@
 import {
-  Injectable,
   BadRequestException,
+  Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { PinoLogger } from 'pino-nestjs';
@@ -58,9 +58,14 @@ export class AiService {
     } else {
       const count = await this.aiRepo.countConversationsByUser(userId);
       if (count >= MAX_CONVERSATIONS_PER_USER) {
-        throw new BadRequestException(
-          'Batas percakapan aktif tercapai (50 percakapan). Hapus percakapan lama terlebih dahulu.',
-        );
+        const oldest = await this.aiRepo.findOldestConversationByUser(userId);
+        if (oldest) {
+          await this.aiRepo.deleteConversation(oldest.id, userId);
+          this.logger.info(
+            { userId, deletedConversationId: oldest.id },
+            'Auto-pruned oldest conversation to stay within limit',
+          );
+        }
       }
 
       const conversation = await this.aiRepo.createConversation(userId);
