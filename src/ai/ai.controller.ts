@@ -12,6 +12,8 @@ import { AiService } from './ai.service';
 import { ChatDto } from './dto/chat.dto';
 import { JwtAuthGuard } from '@/auth/guard/jwt-auth.guard';
 import { GetUserId } from '@/common/decorators/get-user-id-decorator';
+import { Throttle } from '@nestjs/throttler';
+import { UserThrottlerGuard } from '@/common/guards/user-throttler.guard';
 
 @ApiTags('ai')
 @ApiBearerAuth('JwtAuthGuard')
@@ -21,6 +23,8 @@ export class AiController {
   constructor(private readonly aiService: AiService) {}
 
   @Post('chat')
+  @UseGuards(UserThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({
     summary: 'Kirim pesan ke AI',
     description: 'Kirim pesan dan dapatkan jawaban dari AI Health Assistant',
