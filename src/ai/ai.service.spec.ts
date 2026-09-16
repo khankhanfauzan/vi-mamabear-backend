@@ -263,7 +263,7 @@ describe('AiService.deleteConversation', () => {
     const result = await service.deleteConversation('user-1', 'conv-1');
     expect(result).toEqual({
       success: true,
-      message: 'Percakapan berhasil dihapus',
+      message: 'Percakapan berhasil dihapus.',
     });
   });
 
