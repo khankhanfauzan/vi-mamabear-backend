@@ -438,7 +438,9 @@ describe('Smoke Tests (e2e)', () => {
 
     it('GET /admin/activity-logs — list activity logs', async () => {
       const res = await request(BASE)
-        .get('/admin/activity-logs?limit=5&page=1&sortBy=createdAt&sortOrder=desc')
+        .get(
+          '/admin/activity-logs?limit=5&page=1&sortBy=createdAt&sortOrder=desc',
+        )
         .set(authHeader())
         .expect(200);
 
@@ -675,9 +677,8 @@ describe('Smoke Tests (e2e)', () => {
       expect(res.body.data.data).toBeInstanceOf(Array);
       expect(res.body.data.data.length).toBeGreaterThan(0);
       expect(res.body.data.pagination).toBeDefined();
-      state.adminUserId = res.body.data.data.find(
-        (u: any) => u.role === 'ADMIN',
-      )?.id ?? '';
+      state.adminUserId =
+        res.body.data.data.find((u: any) => u.role === 'ADMIN')?.id ?? '';
     });
 
     it('PUT /admin/users/:id/status — deactivate admin user', async () => {
@@ -723,7 +724,6 @@ describe('Smoke Tests (e2e)', () => {
 
       expect(res.body.message).toContain('Cannot change your own status');
     });
-
 
     it('PUT /admin/users/:id/status — ADMIN cannot access (SUPERADMIN-only)', async () => {
       if (!state.adminUserId) return;
@@ -797,14 +797,11 @@ describe('Smoke Tests (e2e)', () => {
       expect(res.body.success).toBe(true);
     });
   });
-  
 
   describe('Admin — Delete', () => {
     it('DELETE /admin/products/:id/reviews/:reviewId', async () => {
       const res = await request(BASE)
-        .delete(
-          `/admin/products/${state.productId}/reviews/${state.reviewId}`,
-        )
+        .delete(`/admin/products/${state.productId}/reviews/${state.reviewId}`)
         .set(authHeader())
         .expect(200);
 
@@ -876,7 +873,9 @@ describe('Smoke Tests (e2e)', () => {
         .put(`/admin/users/${extraSuperId}/status`)
         .set(authHeader())
         .send({ isBlocked: false });
-      await request(BASE).delete(`/admin/users/${extraSuperId}`).set(authHeader());
+      await request(BASE)
+        .delete(`/admin/users/${extraSuperId}`)
+        .set(authHeader());
     });
 
     it('DELETE /admin/users/:id', async () => {
@@ -888,5 +887,4 @@ describe('Smoke Tests (e2e)', () => {
       expect(res.body.success).toBe(true);
     });
   });
-
 });

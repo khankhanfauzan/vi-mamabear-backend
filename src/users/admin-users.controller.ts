@@ -23,9 +23,7 @@ import { AdminUsersQueryDto } from './dto/admin-users-query.dto';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles([Role.ADMIN, Role.SUPERADMIN])
 export class AdminUsersController {
-  constructor(
-    private readonly usersService: UsersService,
-  ) {}
+  constructor(private readonly usersService: UsersService) {}
 
   @Get()
   findAllAdmin(@Query() query: AdminUsersQueryDto) {
@@ -36,5 +34,4 @@ export class AdminUsersController {
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
-
 }

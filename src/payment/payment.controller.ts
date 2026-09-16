@@ -11,18 +11,18 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 @ApiBearerAuth('JwtAuthGuard')
 export class PaymentController {
   constructor(
-      private readonly paymentService: PaymentService,
-      private readonly logger: PinoLogger,
+    private readonly paymentService: PaymentService,
+    private readonly logger: PinoLogger,
   ) {}
-  
+
   @UseGuards(JwtAuthGuard)
   @Post('create')
   createTransaction(@Req() req: any, @Body() dto: CreateTransactionDto) {
-      return this.paymentService.createTransaction(req.user, dto);
+    return this.paymentService.createTransaction(req.user, dto);
   }
   @Post('notification')
   handleNotification(@Body() notification: any) {
-      this.logger.info(`Processing inbound notification: ${notification}`);
-      return this.paymentService.handleNotification(notification);
+    this.logger.info(`Processing inbound notification: ${notification}`);
+    return this.paymentService.handleNotification(notification);
   }
 }

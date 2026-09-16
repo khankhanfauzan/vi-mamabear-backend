@@ -84,7 +84,7 @@ describe('AuthController', () => {
 
     mockAuthService.logout.mockResolvedValue(result);
 
-    const resultResponse = await controller.logout(req as any, mockRes);
+    const resultResponse = await controller.logout(req, mockRes);
     expect(service.logout).toHaveBeenCalledWith(req.sub, mockRes);
     expect(resultResponse).toEqual(result);
   });

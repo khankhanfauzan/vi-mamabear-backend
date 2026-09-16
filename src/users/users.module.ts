@@ -6,7 +6,11 @@ import { UsersRepository } from './users.repository';
 import { SuperAdminUsersController } from './superadmin-users.controller';
 
 @Module({
-  controllers: [AdminUsersController, SuperAdminUsersController, AdminCustomersController],
+  controllers: [
+    AdminUsersController,
+    SuperAdminUsersController,
+    AdminCustomersController,
+  ],
   providers: [UsersService, UsersRepository],
 })
 export class UsersModule {}

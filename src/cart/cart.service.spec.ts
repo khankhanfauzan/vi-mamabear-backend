@@ -88,7 +88,10 @@ describe('CartService', () => {
       });
 
       await expect(
-        service.addToCart({ productId: 1, variantId: 0, quantity: 1 } as any, 'user-1'),
+        service.addToCart(
+          { productId: 1, variantId: 0, quantity: 1 } as any,
+          'user-1',
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 

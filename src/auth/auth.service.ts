@@ -33,7 +33,10 @@ export class AuthService {
     this.logger.setContext(AuthService.name);
   }
 
-  async login(dto: LoginUserDto, res: Response): Promise<ServiceResult<LoginReturns>> {
+  async login(
+    dto: LoginUserDto,
+    res: Response,
+  ): Promise<ServiceResult<LoginReturns>> {
     try {
       const user = await this.repo.findEmail(dto.email);
 
@@ -117,7 +120,7 @@ export class AuthService {
       return {
         success: true,
         message: `Login successful`,
-        data: { accessToken, refreshToken }
+        data: { accessToken, refreshToken },
       };
     } catch (error: any) {
       if (

@@ -146,7 +146,10 @@ export class OrderAdminController {
     @Param('id') id: string,
     @Body() updateTrackingDto: UpdateTrackingDto,
   ) {
-    const result = await this.orderService.updateTrackingNumber(id, updateTrackingDto);
+    const result = await this.orderService.updateTrackingNumber(
+      id,
+      updateTrackingDto,
+    );
     this.activityLogService.log(req.user.sub, 'UPDATE_TRACKING', 'Order', id);
     return result;
   }

@@ -185,7 +185,7 @@ export class SettingsService implements OnModuleInit {
 
       const out: UpdateSettingDto = {
         value: sanitizedValue,
-      } as any;
+      };
       if (dto.type) out.type = dto.type;
       if (dto.description)
         out.description = this.sanitizeString(dto.description);
@@ -195,10 +195,7 @@ export class SettingsService implements OnModuleInit {
 
   async upsertByKey(key: string, dto: UpdateSettingDto) {
     const cleaned = await this.validateAndSanitize(key, dto);
-    const result = await this.repo.upsertByKey(
-      key,
-      cleaned as UpdateSettingDto,
-    );
+    const result = await this.repo.upsertByKey(key, cleaned);
     // update cache with parsed value
     try {
       const parsed = this.parseValue(result.type, result.value);

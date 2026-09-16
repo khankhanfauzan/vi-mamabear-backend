@@ -1,12 +1,7 @@
 import { OrderStatus } from '@/generated/prisma';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import {
-  IsOptional,
-  IsString,
-  IsEnum,
-  IsDateString,
-} from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsDateString } from 'class-validator';
 import { PagePaginationRequestDto } from '@/common/dto/request/page-pagination.request.dto';
 
 export enum AdminOrderSortBy {
@@ -21,12 +16,17 @@ export enum AdminOrderSortOrder {
 }
 
 export class AdminOrdersQueryDto extends PagePaginationRequestDto {
-  @ApiPropertyOptional({ description: 'Search by order ID, customer name, or customer email' })
+  @ApiPropertyOptional({
+    description: 'Search by order ID, customer name, or customer email',
+  })
   @IsOptional()
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by order status', enum: OrderStatus })
+  @ApiPropertyOptional({
+    description: 'Filter by order status',
+    enum: OrderStatus,
+  })
   @IsOptional()
   @IsEnum(OrderStatus)
   status?: OrderStatus;
@@ -36,12 +36,16 @@ export class AdminOrdersQueryDto extends PagePaginationRequestDto {
   @IsString()
   paymentMethod?: string;
 
-  @ApiPropertyOptional({ description: 'Filter orders created on or after this date' })
+  @ApiPropertyOptional({
+    description: 'Filter orders created on or after this date',
+  })
   @IsOptional()
   @IsDateString()
   startDate?: string;
 
-  @ApiPropertyOptional({ description: 'Filter orders created on or before this date' })
+  @ApiPropertyOptional({
+    description: 'Filter orders created on or before this date',
+  })
   @IsOptional()
   @IsDateString()
   endDate?: string;

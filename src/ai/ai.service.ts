@@ -190,7 +190,7 @@ export class AiService {
       await this.aiRepo.deleteConversation(conversationId, userId);
       return {
         success: true,
-        message: 'Percakapan berhasil dihapus',
+        message: 'Percakapan berhasil dihapus.',
       };
     } catch (error) {
       if (

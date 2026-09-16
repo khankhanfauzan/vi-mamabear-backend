@@ -11,23 +11,32 @@ export class UploadService {
     private readonly repo: UploadRepository,
     private readonly cloudinary: CloudinaryService,
   ) {}
-  async uploadImage(file: Express.Multer.File): Promise<ServiceResult< Omit<CreateImageDto, 'sortOrder'> & { sortOrder: null }> > {
+  async uploadImage(
+    file: Express.Multer.File,
+  ): Promise<
+    ServiceResult<Omit<CreateImageDto, 'sortOrder'> & { sortOrder: null }>
+  > {
     if (!file) {
       throw new BadRequestException('file needed');
     }
 
-    let result = await this.cloudinary.uploadFile(file);
+    const result = await this.cloudinary.uploadFile(file);
     return {
       success: true,
-      message: 'Image uploaded successfully to cloudinary. Manually assign a unique sortOrder, and append the following metadata to images=[] in entities that have "images" field.',
+      message:
+        'Image uploaded successfully to cloudinary. Manually assign a unique sortOrder, and append the following metadata to images=[] in entities that have "images" field.',
       data: {
-          ...result,
-          sortOrder: null,
+        ...result,
+        sortOrder: null,
       },
     };
   }
 
-  async uploadImages(files: Express.Multer.File[]): Promise<ServiceResult<(Omit<CreateImageDto, 'sortOrder'> & { sortOrder: null })[]>> {
+  async uploadImages(
+    files: Express.Multer.File[],
+  ): Promise<
+    ServiceResult<(Omit<CreateImageDto, 'sortOrder'> & { sortOrder: null })[]>
+  > {
     if (!files || files.length === 0) {
       throw new BadRequestException('At least one file is required');
     }
@@ -38,8 +47,9 @@ export class UploadService {
 
     return {
       success: true,
-      message: 'Images uploaded successfully to cloudinary. Manual assign a unique sortOrder for each image, and append the following metadata to images=[] in entities that have "images" field.',
-      data: images.map(img => ({ ...img, sortOrder: null }) )
+      message:
+        'Images uploaded successfully to cloudinary. Manual assign a unique sortOrder for each image, and append the following metadata to images=[] in entities that have "images" field.',
+      data: images.map((img) => ({ ...img, sortOrder: null })),
     };
   }
 

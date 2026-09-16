@@ -308,7 +308,9 @@ describe('AuthService', () => {
     mockRepo.findUserById.mockResolvedValue(user);
 
     jest.spyOn(bcrypt, 'compare').mockResolvedValue(true as never);
-    jest.spyOn(bcrypt, 'hash').mockResolvedValue('hashedNewRefreshToken' as never);
+    jest
+      .spyOn(bcrypt, 'hash')
+      .mockResolvedValue('hashedNewRefreshToken' as never);
     mockJwt.signAsync
       .mockResolvedValueOnce('newRefreshToken')
       .mockResolvedValueOnce('newAccessToken');
@@ -465,7 +467,9 @@ describe('AuthService', () => {
 
     mockRepo.findUserById.mockResolvedValue(null);
 
-    await expect(service.logout(user.id, mockRes)).rejects.toThrow('User not found');
+    await expect(service.logout(user.id, mockRes)).rejects.toThrow(
+      'User not found',
+    );
   });
 
   it('should forgot password successfully for logout', async () => {
@@ -578,7 +582,9 @@ describe('AuthService', () => {
 
     mockRepo.findUserByResetToken.mockResolvedValue(null);
 
-    await expect(service.resetPassword(token, dto)).rejects.toThrow('Invalid token');
+    await expect(service.resetPassword(token, dto)).rejects.toThrow(
+      'Invalid token',
+    );
     expect(mockRepo.findUserByResetToken).toHaveBeenCalledWith(token);
   });
 

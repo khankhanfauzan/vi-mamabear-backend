@@ -29,13 +29,15 @@ export class CategoryAdminController {
   ) {}
 
   @Post()
-  async create(
-    @Req() req: any,
-    @Body() dto: CreateCategoryDto,
-  ) {
+  async create(@Req() req: any, @Body() dto: CreateCategoryDto) {
     const result = await this.categoryService.createCategory(req.user.id, dto);
     if (result.success) {
-      this.activityLogService.log(req.user.sub, 'CREATE', 'Category', String(result.data.id));
+      this.activityLogService.log(
+        req.user.sub,
+        'CREATE',
+        'Category',
+        String(result.data.id),
+      );
     }
     return result;
   }
@@ -52,16 +54,29 @@ export class CategoryAdminController {
       dto,
     );
     if (result.success) {
-      this.activityLogService.log(req.user.sub, 'UPDATE', 'Category', String(categoryId));
+      this.activityLogService.log(
+        req.user.sub,
+        'UPDATE',
+        'Category',
+        String(categoryId),
+      );
     }
     return result;
   }
 
   @Delete(':id')
   async delete(@Req() req: any, @Param('id') categoryId: number) {
-    const result = await this.categoryService.deleteCategory(req.user.id, categoryId);
+    const result = await this.categoryService.deleteCategory(
+      req.user.id,
+      categoryId,
+    );
     if (result.success) {
-      this.activityLogService.log(req.user.sub, 'DELETE', 'Category', String(categoryId));
+      this.activityLogService.log(
+        req.user.sub,
+        'DELETE',
+        'Category',
+        String(categoryId),
+      );
     }
     return result;
   }

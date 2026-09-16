@@ -24,32 +24,35 @@ export class HighlightsService {
     });
 
     return {
-        success: true,
-        message: `Created highlight ${result.slug}`,
-        data: result,
-    }
+      success: true,
+      message: `Created highlight ${result.slug}`,
+      data: result,
+    };
   }
 
   async findAll(): Promise<ServiceResult<Highlight[]>> {
-    const result = await this.repo.findAll() ?? []; 
+    const result = (await this.repo.findAll()) ?? [];
     return {
-        success: true,
-        message: `Found ${result.length} highlights`,
-        data: result
-    }
+      success: true,
+      message: `Found ${result.length} highlights`,
+      data: result,
+    };
   }
 
   async findOne(id: number): Promise<ServiceResult<Highlight>> {
     const highlight = await this.repo.findById(id);
     if (!highlight) throw new BadRequestException('Highlight not found');
     return {
-        success: true,
-        message: `Found highlight with id ${id}`,
-        data: highlight,
-    }
+      success: true,
+      message: `Found highlight with id ${id}`,
+      data: highlight,
+    };
   }
 
-  async update(id: number, dto: UpdateHighlightDto): Promise<ServiceResult<Highlight>> {
+  async update(
+    id: number,
+    dto: UpdateHighlightDto,
+  ): Promise<ServiceResult<Highlight>> {
     const highlight = await this.repo.findById(id);
     if (!highlight) throw new BadRequestException('Highlight not found');
 

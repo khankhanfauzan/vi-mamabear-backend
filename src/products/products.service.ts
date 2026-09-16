@@ -113,13 +113,12 @@ export class ProductsService {
 
       const normalizedVariants = dto.variants.map((v, index) => ({
         ...v,
-        sortOrder:
-          hasUndefined || hasDuplicate ? index : (v.sortOrder as number),
+        sortOrder: hasUndefined || hasDuplicate ? index : v.sortOrder,
       }));
 
       const maxSortOrder =
         normalizedVariants.length > 0
-          ? Math.max(...normalizedVariants.map((v) => v.sortOrder as number))
+          ? Math.max(...normalizedVariants.map((v) => v.sortOrder))
           : -1;
 
       const defaultVariant: CreateVariantDto = {
@@ -288,7 +287,7 @@ export class ProductsService {
   ): Promise<ServiceResult<Product>> {
     try {
       if (dto.name) {
-        let generatedSlug = dto.slug
+        const generatedSlug = dto.slug
           ? dto.slug
           : slugify(dto.name, { lower: true, strict: true });
         const resolvedProduct =

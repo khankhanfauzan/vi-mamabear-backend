@@ -400,7 +400,7 @@ export class CartService {
 
     const itemCount = cart.items.reduce((sum, item) => sum + item.quantity, 0);
     const subtotal = cart.items.reduce(
-      (sum, item) => sum + (Number(item.price) * item.quantity),
+      (sum, item) => sum + Number(item.price) * item.quantity,
       0,
     );
 
@@ -425,16 +425,26 @@ export class CartService {
   }
 
   // --- Promo Logic ---
-  async applyPromo(userId: string | undefined, sessionId: string | undefined, code: string) {
+  async applyPromo(
+    userId: string | undefined,
+    sessionId: string | undefined,
+    code: string,
+  ) {
     if (!userId) {
-      throw new BadRequestException('Harap login terlebih dahulu untuk menggunakan kode promo');
+      throw new BadRequestException(
+        'Harap login terlebih dahulu untuk menggunakan kode promo',
+      );
     }
 
     const { cart } = await this.getOrCreateCart(userId, sessionId);
-    
+
     // Validate promo
-    const promo = await this.promoService.validatePromoCode(code, userId, cart.subtotalIdr);
-    
+    const promo = await this.promoService.validatePromoCode(
+      code,
+      userId,
+      cart.subtotalIdr,
+    );
+
     // Update Cart with promo info
     await this.prisma.cart.update({
       where: { id: cart.id },
@@ -473,10 +483,12 @@ export class CartService {
 
     if (cart.promoCode) {
       const promo = cart.promoCode;
-      
+
       // Calculate product discount
       if (promo.discountType === PromoDiscountType.PRODUCT_PERCENTAGE) {
-        productDiscountIdr = Math.floor(cart.subtotalIdr * (Number(promo.discountValue) / 100));
+        productDiscountIdr = Math.floor(
+          cart.subtotalIdr * (Number(promo.discountValue) / 100),
+        );
         if (promo.maxDiscountIdr && productDiscountIdr > promo.maxDiscountIdr) {
           productDiscountIdr = promo.maxDiscountIdr;
         }
@@ -489,7 +501,10 @@ export class CartService {
       }
 
       // Calculate shipping discount
-      if (promo.discountType === PromoDiscountType.FREE_SHIPPING && cart.shippingCostIdr > 0) {
+      if (
+        promo.discountType === PromoDiscountType.FREE_SHIPPING &&
+        cart.shippingCostIdr > 0
+      ) {
         if (Number(promo.discountValue) > 0) {
           shippingDiscountIdr = Number(promo.discountValue);
         } else if (promo.maxShippingDiscountIdr) {

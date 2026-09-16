@@ -12,7 +12,12 @@ import {
 export class AdminActivityLogRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(data: { userId: string; action: string; entity: string; entityId: string | null }) {
+  create(data: {
+    userId: string;
+    action: string;
+    entity: string;
+    entityId: string | null;
+  }) {
     return this.prisma.adminActivityLog.create({ data });
   }
 

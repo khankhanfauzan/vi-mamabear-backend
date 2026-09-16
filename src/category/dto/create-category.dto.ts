@@ -26,7 +26,7 @@ export class CreateCategoryDto {
   @IsString()
   @IsOptional()
   metaTitle?: string;
-  
+
   @ApiPropertyOptional({ example: 'Formula untuk anak' })
   @IsString()
   @IsOptional()

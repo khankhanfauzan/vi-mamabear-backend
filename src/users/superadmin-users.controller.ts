@@ -39,15 +39,22 @@ export class SuperAdminUsersController {
   async create(@Req() req: any, @Body() createUserDto: CreateUserDto) {
     const result = await this.usersService.create(createUserDto);
     if (result.success) {
-      this.activityLogService.log(req.user.sub, 'CREATE', 'User', result.data.id);
+      this.activityLogService.log(
+        req.user.sub,
+        'CREATE',
+        'User',
+        result.data.id,
+      );
     }
     return result;
   }
 
   @Delete(':id')
   async remove(@Req() req: any, @Param('id') id: string) {
-    if(req.user.sub === id) {
-        throw new ForbiddenException('Cannot self delete current logged in user!');
+    if (req.user.sub === id) {
+      throw new ForbiddenException(
+        'Cannot self delete current logged in user!',
+      );
     }
     const result = await this.usersService.remove(req.user, id);
     if (result.success) {

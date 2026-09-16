@@ -35,7 +35,8 @@ export class OrderService {
     if (!user) throw new NotFoundException('User not found');
 
     const order = await this.repo.createOrder(userId, dto);
-    this.mailService.orderConfirmationEmail(user.email, order.id)
+    this.mailService
+      .orderConfirmationEmail(user.email, order.id)
       .catch(() => {});
     return {
       success: true,
@@ -290,10 +291,7 @@ export class OrderService {
 
     const rows = orders.map((o) => {
       const items = o.orderItems
-        .map(
-          (oi) =>
-            `${oi.product.name} (${oi.variant.name}) x${oi.quantity}`,
-        )
+        .map((oi) => `${oi.product.name} (${oi.variant.name}) x${oi.quantity}`)
         .join('; ');
 
       const addr = o.shippingAddress

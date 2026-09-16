@@ -1,4 +1,11 @@
-import { IsString, IsEnum, IsNumber, IsOptional, IsBoolean, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsBoolean,
+  IsDateString,
+} from 'class-validator';
 import { PromoDiscountType } from '../../generated/prisma';
 
 export class CreatePromoDto {
