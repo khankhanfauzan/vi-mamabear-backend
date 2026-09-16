@@ -94,6 +94,44 @@ export class AiRepository {
     });
   }
 
+  async getActiveProductsForContext(): Promise<
+    {
+      id: number;
+      name: string;
+      ingredients: string | null;
+      description: string | null;
+      categoryName: string | null;
+      price: number;
+    }[]
+  > {
+    const products = await this.prisma.product.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        ingredients: true,
+        description: true,
+        category: { select: { name: true } },
+        variants: {
+          where: { stock: { gt: 0 } },
+          orderBy: { priceIdr: 'asc' },
+          take: 1,
+          select: { priceIdr: true },
+        },
+      },
+      orderBy: { id: 'asc' },
+    });
+
+    return products.map((p) => ({
+      id: p.id,
+      name: p.name,
+      ingredients: p.ingredients,
+      description: p.description,
+      categoryName: p.category?.name ?? null,
+      price: Number(p.variants[0]?.priceIdr ?? 0),
+    }));
+  }
+
   async deleteConversation(conversationId: string, userId: string) {
     const result = await this.prisma.aiConversation.deleteMany({
       where: { id: conversationId, userId },

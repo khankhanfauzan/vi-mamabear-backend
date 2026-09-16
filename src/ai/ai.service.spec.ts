@@ -25,6 +25,7 @@ describe('AiService', () => {
       findMessagesByConversation: jest.fn(),
       findConversationsByUser: jest.fn(),
       findMessagesByConversationId: jest.fn(),
+      getActiveProductsForContext: jest.fn().mockResolvedValue([]),
     };
 
     const mockOpenRouter = {
@@ -54,9 +55,9 @@ describe('AiService', () => {
     }).compile();
 
     service = module.get<AiService>(AiService);
-    aiRepo = module.get(AiRepository) as jest.Mocked<AiRepository>;
-    openRouter = module.get(OpenRouterClient) as jest.Mocked<OpenRouterClient>;
-    guardrail = module.get(GuardrailService) as jest.Mocked<GuardrailService>;
+    aiRepo = module.get(AiRepository);
+    openRouter = module.get(OpenRouterClient);
+    guardrail = module.get(GuardrailService);
   });
 
   it('should be defined', () => {
@@ -66,23 +67,27 @@ describe('AiService', () => {
   describe('chat', () => {
     it('should throw BadRequestException if message length > 1000', async () => {
       const longMessage = 'a'.repeat(1001);
-      await expect(service.chat('user-1', { message: longMessage })).rejects.toThrow(BadRequestException);
+      await expect(
+        service.chat('user-1', { message: longMessage }),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should block message and return if input guardrail fails', async () => {
       guardrail.check.mockReturnValue({
-        blockReason: 'EMERGENCY_MEDICAL_QUERY' as any,
-        responseMessage: 'Blocked by input guardrail'
+        blockReason: 'EMERGENCY_MEDICAL_QUERY',
+        responseMessage: 'Blocked by input guardrail',
       });
 
-      aiRepo.createConversation.mockResolvedValue({ 
-        id: 'conv-1', 
-        userId: 'user-1', 
-        createdAt: new Date(), 
-        updatedAt: new Date()
+      aiRepo.createConversation.mockResolvedValue({
+        id: 'conv-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
 
-      const result = await service.chat('user-1', { message: 'darurat medis!' });
+      const result = await service.chat('user-1', {
+        message: 'darurat medis!',
+      });
 
       expect(result.success).toBe(false);
       expect(result.message).toBe('Blocked by input guardrail');
@@ -94,78 +99,90 @@ describe('AiService', () => {
       guardrail.checkOutput.mockReturnValue(null);
 
       aiRepo.countConversationsByUser.mockResolvedValue(1);
-      aiRepo.createConversation.mockResolvedValue({ 
-        id: 'conv-1', 
-        userId: 'user-1', 
-        createdAt: new Date(), 
-        updatedAt: new Date()
+      aiRepo.createConversation.mockResolvedValue({
+        id: 'conv-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
       aiRepo.findMessagesByConversation.mockResolvedValue([]);
-      
+
       openRouter.chat.mockResolvedValue({
         content: 'AI response',
         tokensUsed: 10,
-        model: 'mock-model'
+        model: 'mock-model',
       });
 
       const result = await service.chat('user-1', { message: 'hello' });
 
       expect(result.success).toBe(true);
       expect(result.data?.reply).toContain('AI response');
-      expect(result.data?.reply).toContain('Catatan: Informasi ini bersifat edukatif');
+      expect(result.data?.reply).toContain(
+        'Catatan: Informasi ini bersifat edukatif',
+      );
       expect(openRouter.chat).toHaveBeenCalled();
-      expect(aiRepo.createMessage).toHaveBeenCalledWith(expect.objectContaining({
-        role: AiRole.USER,
-        content: 'hello'
-      }));
+      expect(aiRepo.createMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          role: AiRole.USER,
+          content: 'hello',
+        }),
+      );
     });
 
     it('should block message and return if output guardrail fails', async () => {
       guardrail.check.mockReturnValue(null);
       guardrail.checkOutput.mockReturnValue({
-        blockReason: 'MEDICAL_DIAGNOSIS' as any,
-        responseMessage: 'Blocked by output guardrail'
+        blockReason: 'MEDICAL_DIAGNOSIS',
+        responseMessage: 'Blocked by output guardrail',
       });
 
       aiRepo.countConversationsByUser.mockResolvedValue(1);
-      aiRepo.createConversation.mockResolvedValue({ 
-        id: 'conv-1', 
-        userId: 'user-1', 
-        createdAt: new Date(), 
-        updatedAt: new Date()
+      aiRepo.createConversation.mockResolvedValue({
+        id: 'conv-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
       aiRepo.findMessagesByConversation.mockResolvedValue([]);
-      
+
       openRouter.chat.mockResolvedValue({
         content: 'Diagnosis Anda adalah diabetes.',
         tokensUsed: 10,
-        model: 'mock-model'
+        model: 'mock-model',
       });
 
-      const result = await service.chat('user-1', { message: 'apa penyakit saya?' });
+      const result = await service.chat('user-1', {
+        message: 'apa penyakit saya?',
+      });
 
       expect(result.success).toBe(false);
       expect(result.message).toBe('Blocked by output guardrail');
-      expect(aiRepo.createMessage).toHaveBeenCalledWith(expect.objectContaining({
-        role: AiRole.ASSISTANT,
-        content: 'Blocked by output guardrail',
-        blocked: true
-      }));
+      expect(aiRepo.createMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          role: AiRole.ASSISTANT,
+          content: 'Blocked by output guardrail',
+          blocked: true,
+        }),
+      );
     });
   });
-  
+
   describe('deleteConversation', () => {
     it('should delete conversation successfully', async () => {
       aiRepo.deleteConversation.mockResolvedValue({ count: 1 });
-      
+
       const result = await service.deleteConversation('user-1', 'conv-1');
       expect(result.success).toBe(true);
     });
 
     it('should throw NotFoundException if conversation not found', async () => {
-      aiRepo.deleteConversation.mockRejectedValue(new Error('CONVERSATION_NOT_FOUND'));
-      
-      await expect(service.deleteConversation('user-1', 'conv-1')).rejects.toThrow(NotFoundException);
+      aiRepo.deleteConversation.mockRejectedValue(
+        new Error('CONVERSATION_NOT_FOUND'),
+      );
+
+      await expect(
+        service.deleteConversation('user-1', 'conv-1'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

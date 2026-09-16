@@ -16,7 +16,7 @@ import { GuardrailService } from './guardrail/guardrail.service';
 const MAX_INPUT_LENGTH = 1000;
 const MAX_CONVERSATIONS_PER_USER = 50;
 
-const SYSTEM_PROMPT = `Kamu adalah asisten kesehatan untuk MamaBear, platform produk ibu dan bayi.
+const SYSTEM_PROMPT_BASE = `Kamu adalah asisten kesehatan untuk MamaBear, platform produk ibu dan bayi.
 
 Batasan kamu:
 - Hanya jawab pertanyaan seputar kesehatan ibu hamil, menyusui, dan perawatan bayi
@@ -25,9 +25,41 @@ Batasan kamu:
 - Selalu sarankan untuk berkonsultasi dengan dokter untuk masalah serius
 - Gunakan bahasa Indonesia yang mudah dipahami
 - Jawaban maksimal 3-4 kalimat
+- Jika kamu merekomendasikan suatu produk, sisipkan tag [PRODUCT_IDS: id1,id2] tepat di akhir balasanmu sebelum disclaimer.
 
 Jika pengguna bertanya di luar scope, balas:
 "Maaf, saya hanya bisa membantu pertanyaan seputar kesehatan ibu dan bayi. Untuk pertanyaan lain, silakan hubungi customer service kami."`;
+
+type ProductContext = {
+  id: number;
+  name: string;
+  ingredients: string | null;
+  description: string | null;
+  categoryName: string | null;
+  price: number;
+};
+
+function buildSystemPrompt(products: ProductContext[]): string {
+  if (products.length === 0) return SYSTEM_PROMPT_BASE;
+
+  const productList = products
+    .map((p) => {
+      const parts = [`ID ${p.id}: ${p.name}`];
+      if (p.price > 0) parts.push(`Rp${p.price.toLocaleString('id-ID')}`);
+      if (p.categoryName) parts.push(`Kategori: ${p.categoryName}`);
+      if (p.ingredients) parts.push(`Komposisi: ${p.ingredients}`);
+      if (p.description) parts.push(p.description);
+      return `- ${parts.join(' | ')}`;
+    })
+    .join('\n');
+
+  return `${SYSTEM_PROMPT_BASE}
+
+[DATA_PRODUK_AKTIF]:
+${productList}
+
+PENTING: Kamu HANYA boleh merekomendasikan produk dari daftar di atas. Jika ditanya produk yang tidak ada di daftar, tolak dengan sopan.`;
+}
 
 @Injectable()
 export class AiService {
@@ -143,7 +175,11 @@ export class AiService {
       userId,
     );
 
-    const messages = this.buildPrompt(dto.message, history);
+    // Fetch active products for RAG context
+    const products = await this.aiRepo.getActiveProductsForContext();
+    const systemPrompt = buildSystemPrompt(products);
+
+    const messages = this.buildPrompt(systemPrompt, dto.message, history);
 
     const result = await this.openRouter.chat(messages);
 
@@ -154,7 +190,11 @@ export class AiService {
 
     if (outputGuardrailResult) {
       this.logger.warn(
-        { userId, conversationId, blockReason: outputGuardrailResult.blockReason },
+        {
+          userId,
+          conversationId,
+          blockReason: outputGuardrailResult.blockReason,
+        },
         'Output guardrail blocked message after LLM call',
       );
 
@@ -187,7 +227,8 @@ export class AiService {
     }
 
     // Tambahkan Disclaimer
-    const disclaimer = '\n\n---\nCatatan: Informasi ini bersifat edukatif dan bukan pengganti saran, diagnosis, atau penanganan dari tenaga medis/dokter profesional.';
+    const disclaimer =
+      '\n\n---\nCatatan: Informasi ini bersifat edukatif dan bukan pengganti saran, diagnosis, atau penanganan dari tenaga medis/dokter profesional.';
     finalContent += disclaimer;
 
     await this.aiRepo.createMessage({
@@ -263,13 +304,14 @@ export class AiService {
   }
 
   private buildPrompt(
+    systemPrompt: string,
     userMessage: string,
     history: { role: AiRole; content: string }[],
   ) {
     const messages: {
       role: 'user' | 'assistant' | 'system';
       content: string;
-    }[] = [{ role: 'system', content: SYSTEM_PROMPT }];
+    }[] = [{ role: 'system', content: systemPrompt }];
 
     const recentHistory = history.slice(-10);
     for (const msg of recentHistory) {
