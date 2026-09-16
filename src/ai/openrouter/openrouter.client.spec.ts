@@ -50,26 +50,26 @@ describe('OpenRouterClient', () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,
       json: jest.fn().mockResolvedValue({
-        error: { message: 'Invalid API Key' }
+        error: { message: 'Invalid API Key' },
       }),
     });
 
-    await expect(client.chat([{ role: 'user', content: 'Hello' }]))
-      .rejects
-      .toThrow(BadGatewayException);
-      
+    await expect(
+      client.chat([{ role: 'user', content: 'Hello' }]),
+    ).rejects.toThrow(BadGatewayException);
+
     try {
-        await client.chat([{ role: 'user', content: 'Hello' }]);
+      await client.chat([{ role: 'user', content: 'Hello' }]);
     } catch (e: any) {
-        expect(e.message).toBe('Invalid API Key');
+      expect(e.message).toBe('Invalid API Key');
     }
   });
 
   it('should handle network/fetch failure', async () => {
     global.fetch = jest.fn().mockRejectedValue(new Error('Network failure'));
 
-    await expect(client.chat([{ role: 'user', content: 'Hello' }]))
-      .rejects
-      .toThrow(BadGatewayException);
+    await expect(
+      client.chat([{ role: 'user', content: 'Hello' }]),
+    ).rejects.toThrow(BadGatewayException);
   });
 });

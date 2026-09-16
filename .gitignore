@@ -66,3 +66,5 @@ postman/.dependencies/
 docker-compose.yml
 Dockerfile
 .dockerignore
+.playwright-mcp
+.commandcode
