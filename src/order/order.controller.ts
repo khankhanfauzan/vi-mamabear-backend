@@ -25,8 +25,8 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 @ApiBearerAuth('JwtAuthGuard')
 export class OrderController {
   constructor(
-      private readonly orderService: OrderService,
-      private readonly logger: PinoLogger,
+    private readonly orderService: OrderService,
+    private readonly logger: PinoLogger,
   ) {}
 
   @Post(':id/cancel')
@@ -60,10 +60,7 @@ export class OrderController {
 
   // refactor below
   @Post() // on checkout
-  createOrderAfterCheckout(
-    @Req() req: any,
-    @Body() dto: CreateOrderDto,
-  ) {
+  createOrderAfterCheckout(@Req() req: any, @Body() dto: CreateOrderDto) {
     this.logger.info(`Creating order for user with id ${req.user.sub}`);
     return this.orderService.createOrder(req.user.sub, dto); // orderId as param for everything below
   }

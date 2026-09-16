@@ -13,12 +13,7 @@ export class AdminActivityLogService {
     private readonly adminActivityLogRepository: AdminActivityLogRepository,
   ) {}
 
-  async log(
-    userId: string,
-    action: string,
-    entity: string,
-    entityId?: string,
-  ) {
+  async log(userId: string, action: string, entity: string, entityId?: string) {
     try {
       return await this.adminActivityLogRepository.create({
         userId,
@@ -31,10 +26,13 @@ export class AdminActivityLogService {
     }
   }
 
-  async findAll(query: AdminActivityLogQueryDto): Promise<ServiceResult<PagePaginationResponseDto<any>>> {
+  async findAll(
+    query: AdminActivityLogQueryDto,
+  ): Promise<ServiceResult<PagePaginationResponseDto<any>>> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
-    const { items, totalItems } = await this.adminActivityLogRepository.findAll(query);
+    const { items, totalItems } =
+      await this.adminActivityLogRepository.findAll(query);
     const meta = new PagePaginationMetaDto(page, limit, totalItems);
     const result = new PagePaginationResponseDto(items, meta);
     return {

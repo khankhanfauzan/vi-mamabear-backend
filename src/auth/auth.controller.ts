@@ -32,7 +32,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JwtAuthGuard')
   me(@Req() req: any) {
-      return req.user;
+    return req.user;
   }
 
   @Throttle({

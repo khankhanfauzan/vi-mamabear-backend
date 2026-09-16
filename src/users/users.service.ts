@@ -85,7 +85,10 @@ export class UsersService {
     this.logger.setContext(UsersService.name);
   }
 
-  async updateCustomerStatus(id: string, dto: UpdateCustomerStatusDto): Promise<ServiceResult<UserPublic>> {
+  async updateCustomerStatus(
+    id: string,
+    dto: UpdateCustomerStatusDto,
+  ): Promise<ServiceResult<UserPublic>> {
     try {
       const user = await this.usersRepository.findById(id);
       if (!user) {
@@ -253,8 +256,10 @@ export class UsersService {
 
   async remove(user: any, id: string): Promise<ServiceResult<UserPublic>> {
     try {
-      if(user.sub === id) 
-          throw new ForbiddenException('Cannot self-delete current logged in user!');
+      if (user.sub === id)
+        throw new ForbiddenException(
+          'Cannot self-delete current logged in user!',
+        );
       const result = await this.usersRepository.delete(id);
       this.logger.info({
         message: 'User deleted successfully',
@@ -342,7 +347,8 @@ export class UsersService {
     }
 
     if (dto.isBlocked && target.role === Role.SUPERADMIN) {
-      const activeSuperAdmins = await this.usersRepository.countActiveSuperAdmins();
+      const activeSuperAdmins =
+        await this.usersRepository.countActiveSuperAdmins();
       if (activeSuperAdmins <= 1) {
         throw new BadRequestException(
           'Cannot deactivate the last active SUPERADMIN',
@@ -350,7 +356,10 @@ export class UsersService {
       }
     }
 
-    const result = await this.usersRepository.setBlocked(targetId, dto.isBlocked);
+    const result = await this.usersRepository.setBlocked(
+      targetId,
+      dto.isBlocked,
+    );
     return {
       success: true,
       message: `User ${dto.isBlocked ? 'deactivated' : 'reactivated'} successfully`,

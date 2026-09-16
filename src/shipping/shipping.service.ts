@@ -130,7 +130,10 @@ export class ShippingService {
       params.append('destination', dto.destination.toString());
       params.append('weight', weight.toString()); //remove from dto. fetch from DB (cart repo)
       params.append('courier', courier); //remove from dto. fetch from DB (admin/setting repo)
-      params.append('price', dto.priceSortDirection ? dto.priceSortDirection : '');
+      params.append(
+        'price',
+        dto.priceSortDirection ? dto.priceSortDirection : '',
+      );
       const response = await fetch(`${this.baseUrl}/calculate/domestic-cost`, {
         method: 'POST',
         headers: this.headers,

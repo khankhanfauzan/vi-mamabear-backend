@@ -56,7 +56,6 @@ export class UsersRepository {
     return this.prisma.user.findMany({ select: USER_SELECT });
   }
 
-
   async aggregateCustomerOrders(userId: string) {
     return this.prisma.order.aggregate({
       where: { userId },

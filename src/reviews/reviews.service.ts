@@ -11,11 +11,12 @@ import {
 
 @Injectable()
 export class ReviewsService {
-  constructor(
-    private readonly reviewsRepository: ReviewsRepository,
-  ) {}
+  constructor(private readonly reviewsRepository: ReviewsRepository) {}
 
-  private buildReviewWhere(productId: number, paginationDto?: ReviewPaginationDto) {
+  private buildReviewWhere(
+    productId: number,
+    paginationDto?: ReviewPaginationDto,
+  ) {
     const where: any = { productId };
 
     if (paginationDto?.minRating !== undefined) {
@@ -29,7 +30,8 @@ export class ReviewsService {
   }
 
   private buildReviewOrderBy(paginationDto?: ReviewPaginationDto) {
-    const dir = paginationDto?.sortOrder === ReviewSortOrder.ASC ? 'asc' : 'desc';
+    const dir =
+      paginationDto?.sortOrder === ReviewSortOrder.ASC ? 'asc' : 'desc';
 
     switch (paginationDto?.sortBy) {
       case ReviewSortBy.UPVOTES:
@@ -51,7 +53,9 @@ export class ReviewsService {
       where,
       orderBy,
       take: limit + 1,
-      ...(paginationDto?.cursor ? { cursor: { id: paginationDto.cursor }, skip: 1 } : {}),
+      ...(paginationDto?.cursor
+        ? { cursor: { id: paginationDto.cursor }, skip: 1 }
+        : {}),
       include: {
         reviewer: { select: { id: true, name: true } },
         images: true,
@@ -79,12 +83,18 @@ export class ReviewsService {
     productSlug: string,
     paginationDto?: ReviewPaginationDto,
   ): Promise<ServiceResult<any>> {
-    const resolvedProduct = await this.reviewsRepository.findProductBySlug(productSlug);
-    if (!resolvedProduct) throw new NotFoundException(`Cannot find product with slug ${productSlug}`);
+    const resolvedProduct =
+      await this.reviewsRepository.findProductBySlug(productSlug);
+    if (!resolvedProduct)
+      throw new NotFoundException(
+        `Cannot find product with slug ${productSlug}`,
+      );
     return this.findReviewsOfProduct(resolvedProduct.id, paginationDto);
   }
 
-  async createReviewForProduct(dto: CreateReviewDto): Promise<ServiceResult<Review>> {
+  async createReviewForProduct(
+    dto: CreateReviewDto,
+  ): Promise<ServiceResult<Review>> {
     const result = await this.reviewsRepository.create(dto);
     return {
       success: true,
@@ -92,9 +102,14 @@ export class ReviewsService {
       data: result,
     };
   }
-  async createReviewForProductWithSlug(slug: string, dto: CreateReviewDto): Promise<ServiceResult<Review>> {
-    const resolvedProduct = await this.reviewsRepository.findProductBySlug(slug);
-    if (!resolvedProduct) throw new NotFoundException(`Cannot find product with slug ${slug}`);
+  async createReviewForProductWithSlug(
+    slug: string,
+    dto: CreateReviewDto,
+  ): Promise<ServiceResult<Review>> {
+    const resolvedProduct =
+      await this.reviewsRepository.findProductBySlug(slug);
+    if (!resolvedProduct)
+      throw new NotFoundException(`Cannot find product with slug ${slug}`);
     dto.productId = resolvedProduct.id;
     return await this.createReviewForProduct(dto);
   }
@@ -108,10 +123,16 @@ export class ReviewsService {
     };
   }
 
-  async getReviewSummaryOfProductWithSlug(slug: string): Promise<ServiceResult<ReviewSummary>> {
-    const resolvedProduct = await this.reviewsRepository.findProductBySlug(slug);
-    if (!resolvedProduct) throw new NotFoundException(`Cannot find product with slug ${slug}`);
-    const result = await this.reviewsRepository.getReviewSummary(resolvedProduct.id);
+  async getReviewSummaryOfProductWithSlug(
+    slug: string,
+  ): Promise<ServiceResult<ReviewSummary>> {
+    const resolvedProduct =
+      await this.reviewsRepository.findProductBySlug(slug);
+    if (!resolvedProduct)
+      throw new NotFoundException(`Cannot find product with slug ${slug}`);
+    const result = await this.reviewsRepository.getReviewSummary(
+      resolvedProduct.id,
+    );
     return {
       success: true,
       message: `Review summary of product ${slug} obtained`,

@@ -25,7 +25,9 @@ export enum SortOrder {
 }
 
 export class AdminProductsQueryDto extends PagePaginationRequestDto {
-  @ApiPropertyOptional({ description: 'Fuzzy search by name, slug, or description' })
+  @ApiPropertyOptional({
+    description: 'Fuzzy search by name, slug, or description',
+  })
   @IsOptional()
   @IsString()
   search?: string;

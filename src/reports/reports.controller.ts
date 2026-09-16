@@ -14,7 +14,6 @@ import {
 } from '@/common/dto/response/page-pagination.response.dto';
 import { Response } from 'express';
 
-
 @ApiTags('reports (admin)')
 @Controller('admin/reports')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -52,7 +51,7 @@ export class ReportsController {
     );
 
     const csvStream = format({
-      headers: true, 
+      headers: true,
     });
 
     csvStream.pipe(res);

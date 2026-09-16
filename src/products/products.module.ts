@@ -14,13 +14,13 @@ import { CursorPaginationService } from '@/common/services/pagination.service';
 
 @Module({
   imports: [
-      ProductUtilsModule,
-      ReviewsModule,
-      DiscountsModule,
-      VariantModule,
-      CloudinaryModule,
-      SearchModule,
-      EmbeddingsModule
+    ProductUtilsModule,
+    ReviewsModule,
+    DiscountsModule,
+    VariantModule,
+    CloudinaryModule,
+    SearchModule,
+    EmbeddingsModule,
   ],
   controllers: [ProductsController, ProductsAdminController],
   providers: [ProductsService, ProductsRepository, CursorPaginationService],

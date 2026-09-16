@@ -29,10 +29,18 @@ export class HighlightsAdminController {
   ) {}
 
   @Post()
-  async create(@Req() req: any, @Body() createHighlightDto: CreateHighlightDto) {
+  async create(
+    @Req() req: any,
+    @Body() createHighlightDto: CreateHighlightDto,
+  ) {
     const result = await this.highlightsService.create(createHighlightDto);
     if (result.success) {
-      this.activityLogService.log(req.user.sub, 'CREATE', 'Highlight', String(result.data.id));
+      this.activityLogService.log(
+        req.user.sub,
+        'CREATE',
+        'Highlight',
+        String(result.data.id),
+      );
     }
     return result;
   }

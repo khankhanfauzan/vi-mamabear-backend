@@ -32,7 +32,9 @@ export class TransformInterceptor<T> implements NestInterceptor<
           return {
             success: true,
             statusCode: response.statusCode,
-            message: [response.statusMessage || data.message || 'No message specified'],
+            message: [
+              response.statusMessage || data.message || 'No message specified',
+            ],
             data: data.data,
             timestamp: new Date().toISOString(),
           };

@@ -53,21 +53,20 @@ export class CartController {
           });
         }
         result = { ...data.cart, totalWeight: 0 };
-          this.logger.info({
-            message: 'Cart created successfully',
-            endpoint: 'GET /cart',
-            userId: userId || 'guest',
-            sessionId: data.createdSessionId,
-            status: 'success',
-          });
-      }
-      else {
-          this.logger.info({
-            message: 'Cart retrieved successfully',
-            endpoint: 'GET /cart',
-            userId: userId || 'guest',
-            status: 'success',
-          });
+        this.logger.info({
+          message: 'Cart created successfully',
+          endpoint: 'GET /cart',
+          userId: userId || 'guest',
+          sessionId: data.createdSessionId,
+          status: 'success',
+        });
+      } else {
+        this.logger.info({
+          message: 'Cart retrieved successfully',
+          endpoint: 'GET /cart',
+          userId: userId || 'guest',
+          status: 'success',
+        });
       }
       return result;
     } catch (error: any) {
@@ -128,9 +127,9 @@ export class CartController {
 
       const result = await this.cartService.mergeCart(userId, sessionId);
       res.clearCookie('sessionId', {
-          httpOnly: true,
-          sameSite: 'lax',
-      })
+        httpOnly: true,
+        sameSite: 'lax',
+      });
       this.logger.info({
         message: `Cart merged successfully and sessionId cookie ${sessionId} deleted`,
         endpoint: 'POST /cart/merge',
@@ -287,12 +286,15 @@ export class CartController {
   }
   @Delete(':id/courier')
   async clearCartCourierInformation(@Param('id') id: string) {
-      return this.cartService.clearCourierInformation(id);
+    return this.cartService.clearCourierInformation(id);
   }
 
   @Patch(':id/courier')
-  async updateCourierInformation(@Param('id') id: string, @Body() dto: PatchCourierDto) {
-      return this.cartService.updateCourierInformation(id, dto);
+  async updateCourierInformation(
+    @Param('id') id: string,
+    @Body() dto: PatchCourierDto,
+  ) {
+    return this.cartService.updateCourierInformation(id, dto);
   }
 
   @Delete()

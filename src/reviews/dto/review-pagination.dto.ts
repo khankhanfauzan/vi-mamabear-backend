@@ -1,11 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsOptional,
-  IsInt,
-  IsEnum,
-  Min,
-  Max,
-} from 'class-validator';
+import { IsOptional, IsInt, IsEnum, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CursorPaginationRequestDto } from '@/common/dto/request/pagination.request.dto';
 

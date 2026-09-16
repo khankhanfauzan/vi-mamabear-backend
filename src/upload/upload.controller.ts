@@ -49,9 +49,7 @@ export class UploadController {
       },
     }),
   )
-  uploadSingleImage(
-    @UploadedFile() file: Express.Multer.File,
-  ) {
+  uploadSingleImage(@UploadedFile() file: Express.Multer.File) {
     return this.uploadService.uploadImage(file);
   }
 
@@ -70,9 +68,7 @@ export class UploadController {
       },
     }),
   )
-  uploadMultipleImages(
-    @UploadedFiles() files: Express.Multer.File[],
-  ) {
+  uploadMultipleImages(@UploadedFiles() files: Express.Multer.File[]) {
     return this.uploadService.uploadImages(files);
   }
 

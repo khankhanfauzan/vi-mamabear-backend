@@ -1,4 +1,12 @@
-import { Controller, Get, Param, Put, Body, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Put,
+  Body,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { SettingsService } from './settings.service';
 import { UpdateSettingDto } from './dto/update-setting.dto';
@@ -29,7 +37,11 @@ export class SettingsAdminController {
   }
 
   @Put(':key')
-  async update(@Req() req: any, @Param('key') key: string, @Body() dto: UpdateSettingDto) {
+  async update(
+    @Req() req: any,
+    @Param('key') key: string,
+    @Body() dto: UpdateSettingDto,
+  ) {
     const result = await this.settingsService.upsertByKey(key, dto);
     this.activityLogService.log(req.user.sub, 'UPDATE', 'Setting', key);
     return result;

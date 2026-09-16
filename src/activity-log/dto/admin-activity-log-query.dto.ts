@@ -24,12 +24,16 @@ export class AdminActivityLogQueryDto extends PagePaginationRequestDto {
   @IsString()
   entity?: string;
 
-  @ApiPropertyOptional({ description: 'Filter logs created on or after this date' })
+  @ApiPropertyOptional({
+    description: 'Filter logs created on or after this date',
+  })
   @IsOptional()
   @IsDateString()
   startDate?: string;
 
-  @ApiPropertyOptional({ description: 'Filter logs created on or before this date' })
+  @ApiPropertyOptional({
+    description: 'Filter logs created on or before this date',
+  })
   @IsOptional()
   @IsDateString()
   endDate?: string;

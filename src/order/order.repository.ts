@@ -89,7 +89,11 @@ export class OrderRepository {
           promoCode: cart.promoCodeString,
           productDiscountIdr: cart.productDiscountIdr,
           shippingDiscountIdr: cart.shippingDiscountIdr,
-          grandTotalIdr: (cart.subtotalIdr - cart.productDiscountIdr) + (cart.shippingCostIdr - cart.shippingDiscountIdr) + cart.taxIdr,
+          grandTotalIdr:
+            cart.subtotalIdr -
+            cart.productDiscountIdr +
+            (cart.shippingCostIdr - cart.shippingDiscountIdr) +
+            cart.taxIdr,
           courierName: cart.courierName,
           courierCode: cart.courierCode,
           shippingMethod: cart.shippingMethod,
@@ -176,9 +180,9 @@ export class OrderRepository {
     });
   }
   findById(orderId: string) {
-      return this.prisma.order.findUnique({
-          where: { id: orderId },
-      });
+    return this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
   }
 
   handleCompleteOrder(orderId: string) {
@@ -195,7 +199,9 @@ export class OrderRepository {
           `Cannot process product sold increment: order with orderId=${orderId} does not exist`,
         );
       if (resolvedOrder.status != OrderStatus.PAYMENT_PENDING)
-          throw new BadRequestException(`Cannot update status of order ${orderId}, order does not have PAYMENT_PENDING status`);
+        throw new BadRequestException(
+          `Cannot update status of order ${orderId}, order does not have PAYMENT_PENDING status`,
+        );
       const order = await tx.order.update({
         where: { id: resolvedOrder.id },
         data: { status: OrderStatus.PAYMENT_PAID },
@@ -408,7 +414,10 @@ export class OrderRepository {
     }
 
     if (query.paymentMethod) {
-      where.paymentMethod = { contains: query.paymentMethod, mode: 'insensitive' };
+      where.paymentMethod = {
+        contains: query.paymentMethod,
+        mode: 'insensitive',
+      };
     }
 
     if (query.startDate || query.endDate) {

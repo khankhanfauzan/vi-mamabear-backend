@@ -9,7 +9,12 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags, ApiOkResponse, ApiParam } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiTags,
+  ApiOkResponse,
+  ApiParam,
+} from '@nestjs/swagger';
 import { Response } from 'express';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '@/auth/guard/jwt-auth.guard';
@@ -59,7 +64,12 @@ export class AdminCustomersController {
   ) {
     const result = await this.usersService.updateCustomerStatus(id, dto);
     if (result.success) {
-      this.activityLogService.log(req.user.sub, 'UPDATE_STATUS', 'Customer', id);
+      this.activityLogService.log(
+        req.user.sub,
+        'UPDATE_STATUS',
+        'Customer',
+        id,
+      );
     }
     return result;
   }

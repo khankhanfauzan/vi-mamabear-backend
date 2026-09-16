@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { CreatePromoDto } from './dto/create-promo.dto';
 import { UpdatePromoDto } from './dto/update-promo.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -92,7 +96,9 @@ export class PromoService {
     }
 
     if (subtotalIdr < promo.minSpendIdr) {
-      throw new BadRequestException(`Minimal belanja untuk promo ini adalah Rp ${promo.minSpendIdr.toLocaleString('id-ID')}`);
+      throw new BadRequestException(
+        `Minimal belanja untuk promo ini adalah Rp ${promo.minSpendIdr.toLocaleString('id-ID')}`,
+      );
     }
 
     if (promo.usageLimit !== null && promo.usageCount >= promo.usageLimit) {
@@ -107,7 +113,9 @@ export class PromoService {
     });
 
     if (userUsageCount >= promo.maxUsagePerUser) {
-      throw new BadRequestException(`Anda sudah menggunakan kode promo ini sebanyak batas maksimum (${promo.maxUsagePerUser} kali)`);
+      throw new BadRequestException(
+        `Anda sudah menggunakan kode promo ini sebanyak batas maksimum (${promo.maxUsagePerUser} kali)`,
+      );
     }
 
     return promo;

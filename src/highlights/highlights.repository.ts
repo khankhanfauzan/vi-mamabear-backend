@@ -31,7 +31,11 @@ export class HighlightsRepository {
     where: Prisma.HighlightWhereUniqueInput,
     data: Prisma.HighlightUpdateInput,
   ) {
-    return this.prisma.highlight.update({ where, data, include: HIGHLIGHT_INCLUDE });
+    return this.prisma.highlight.update({
+      where,
+      data,
+      include: HIGHLIGHT_INCLUDE,
+    });
   }
 
   delete(where: Prisma.HighlightWhereUniqueInput) {

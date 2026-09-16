@@ -45,7 +45,6 @@ export class CreateReviewDto {
       'https://example.com/review-img2.jpg',
     ],
   })
-
   @ApiPropertyOptional({ type: [CreateImageDto] })
   @IsArray()
   @ValidateNested({ each: true })
