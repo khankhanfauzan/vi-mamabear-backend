@@ -4,6 +4,8 @@ import { AiRepository } from './ai.repository';
 import { OpenRouterClient } from './openrouter/openrouter.client';
 import { PinoLogger } from 'pino-nestjs';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { GuardrailService } from './guardrail/guardrail.service';
+import { BLOCK_REASONS } from './guardrail/blocked-keywords';
 
 const mockAiRepo = {
   findConversationById: jest.fn(),
@@ -29,6 +31,10 @@ const mockLogger = {
   warn: jest.fn(),
 };
 
+const mockGuardrail = {
+  check: jest.fn(),
+};
+
 describe('AiService', () => {
   let service: AiService;
 
@@ -39,10 +45,12 @@ describe('AiService', () => {
         { provide: AiRepository, useValue: mockAiRepo },
         { provide: OpenRouterClient, useValue: mockOpenRouter },
         { provide: PinoLogger, useValue: mockLogger },
+        { provide: GuardrailService, useValue: mockGuardrail },
       ],
     }).compile();
 
     service = module.get<AiService>(AiService);
+
     jest.clearAllMocks();
   });
 
@@ -221,6 +229,7 @@ describe('AiService', () => {
   // ─────────────────────────────────────────────────────────────────
   it('should return correct ChatResponseDto on success', async () => {
     mockAiRepo.countConversationsByUser.mockResolvedValue(0);
+    mockGuardrail.check.mockReturnValue(null); // aman, tidak diblok
     setupHappyPathMocks('conv-abc');
 
     const result = await service.chat('user-1', { message: 'halo' });
@@ -234,6 +243,147 @@ describe('AiService', () => {
         blocked: false,
       },
     });
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // Skenario 10: Guardrail — pesan darurat medis
+  // ─────────────────────────────────────────────────────────────────
+  it('should block emergency medical message and NOT call OpenRouter', async () => {
+    const emergencyResult = {
+      blockReason: BLOCK_REASONS.EMERGENCY,
+      responseMessage:
+        'Kondisi ini mengindikasikan darurat medis, segera hubungi dokter/IGD terdekat atau WhatsApp MamaBear (628888695757).',
+    };
+    mockGuardrail.check.mockReturnValue(emergencyResult);
+    mockAiRepo.createConversation.mockResolvedValue({ id: 'conv-blocked' });
+    mockAiRepo.createMessage.mockResolvedValue({});
+    mockAiRepo.updateConversationTimestamp.mockResolvedValue({});
+
+    const result = await service.chat('user-1', {
+      message: 'saya mengalami pendarahan banyak',
+    });
+
+    // OpenRouter tidak boleh dipanggil
+    expect(mockOpenRouter.chat).not.toHaveBeenCalled();
+
+    // Dua pesan disimpan: user (blocked) + assistant (guardrail response)
+    expect(mockAiRepo.createMessage).toHaveBeenCalledTimes(2);
+    expect(mockAiRepo.createMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        blocked: true,
+        blockReason: BLOCK_REASONS.EMERGENCY,
+      }),
+    );
+
+    // Respons sesuai spesifikasi
+    expect(result).toEqual({
+      success: false,
+      message: emergencyResult.responseMessage,
+      data: {
+        conversationId: 'conv-blocked',
+        reply: null,
+        blocked: true,
+        blockReason: BLOCK_REASONS.EMERGENCY,
+      },
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // Skenario 11: Guardrail — permintaan resep obat
+  // ─────────────────────────────────────────────────────────────────
+  it('should block prescription request and NOT call OpenRouter', async () => {
+    const prescriptionResult = {
+      blockReason: BLOCK_REASONS.PRESCRIPTION,
+      responseMessage:
+        'Saya tidak dapat memberikan resep atau rekomendasi dosis obat. Silakan konsultasikan langsung dengan dokter atau apoteker Anda.',
+    };
+    mockGuardrail.check.mockReturnValue(prescriptionResult);
+    mockAiRepo.createConversation.mockResolvedValue({ id: 'conv-rx' });
+    mockAiRepo.createMessage.mockResolvedValue({});
+    mockAiRepo.updateConversationTimestamp.mockResolvedValue({});
+
+    const result = await service.chat('user-1', {
+      message: 'tolong resepkan antibiotik untuk saya',
+    });
+
+    expect(mockOpenRouter.chat).not.toHaveBeenCalled();
+    expect(result.success).toBe(false);
+    expect(result.data.blocked).toBe(true);
+    expect(result.data.blockReason).toBe(BLOCK_REASONS.PRESCRIPTION);
+    expect(result.data.reply).toBeNull();
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // Skenario 12: Guardrail — pesan di luar scope
+  // ─────────────────────────────────────────────────────────────────
+  it('should block out-of-scope message and NOT call OpenRouter', async () => {
+    const outOfScopeResult = {
+      blockReason: BLOCK_REASONS.OUT_OF_SCOPE,
+      responseMessage:
+        'Maaf, saya hanya bisa membantu pertanyaan seputar kesehatan ibu dan bayi. Untuk pertanyaan lain, silakan hubungi customer service kami.',
+    };
+    mockGuardrail.check.mockReturnValue(outOfScopeResult);
+    mockAiRepo.createConversation.mockResolvedValue({ id: 'conv-oos' });
+    mockAiRepo.createMessage.mockResolvedValue({});
+    mockAiRepo.updateConversationTimestamp.mockResolvedValue({});
+
+    const result = await service.chat('user-1', {
+      message: 'siapa presiden Indonesia?',
+    });
+
+    expect(mockOpenRouter.chat).not.toHaveBeenCalled();
+    expect(result.success).toBe(false);
+    expect(result.data.blocked).toBe(true);
+    expect(result.data.blockReason).toBe(BLOCK_REASONS.OUT_OF_SCOPE);
+    expect(result.data.reply).toBeNull();
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // Skenario 13: Guardrail blocked + conversationId valid ada
+  // ─────────────────────────────────────────────────────────────────
+  it('should use existing conversationId when guardrail blocks with valid conversationId', async () => {
+    const emergencyResult = {
+      blockReason: BLOCK_REASONS.EMERGENCY,
+      responseMessage: 'Segera ke IGD.',
+    };
+    mockGuardrail.check.mockReturnValue(emergencyResult);
+    mockAiRepo.findConversationById.mockResolvedValue({
+      id: 'conv-existing',
+      userId: 'user-1',
+    });
+    mockAiRepo.createMessage.mockResolvedValue({});
+    mockAiRepo.updateConversationTimestamp.mockResolvedValue({});
+
+    const result = await service.chat('user-1', {
+      message: 'saya kejang',
+      conversationId: 'conv-existing',
+    });
+
+    // createConversation tidak dipanggil karena conversationId sudah ada
+    expect(mockAiRepo.createConversation).not.toHaveBeenCalled();
+    expect(result.data.conversationId).toBe('conv-existing');
+    expect(result.data.blocked).toBe(true);
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // Skenario 14: Guardrail log warn dipanggil saat blok
+  // ─────────────────────────────────────────────────────────────────
+  it('should call logger.warn when guardrail blocks a message', async () => {
+    const emergencyResult = {
+      blockReason: BLOCK_REASONS.EMERGENCY,
+      responseMessage: 'Segera ke IGD.',
+    };
+    mockGuardrail.check.mockReturnValue(emergencyResult);
+    mockAiRepo.createConversation.mockResolvedValue({ id: 'conv-log' });
+    mockAiRepo.createMessage.mockResolvedValue({});
+    mockAiRepo.updateConversationTimestamp.mockResolvedValue({});
+
+    await service.chat('user-1', { message: 'saya tidak sadar' });
+
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      { userId: 'user-1', blockReason: BLOCK_REASONS.EMERGENCY },
+      'Guardrail blocked message before LLM call',
+    );
   });
 });
 
@@ -250,6 +400,7 @@ describe('AiService.deleteConversation', () => {
         { provide: AiRepository, useValue: mockAiRepo },
         { provide: OpenRouterClient, useValue: mockOpenRouter },
         { provide: PinoLogger, useValue: mockLogger },
+        { provide: GuardrailService, useValue: mockGuardrail },
       ],
     }).compile();
 
