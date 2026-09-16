@@ -147,10 +147,53 @@ export class AiService {
 
     const result = await this.openRouter.chat(messages);
 
+    let finalContent = result.content;
+
+    // ── Output Guardrail Check ───────────────────────────────────────
+    const outputGuardrailResult = this.guardrail.checkOutput(finalContent);
+
+    if (outputGuardrailResult) {
+      this.logger.warn(
+        { userId, conversationId, blockReason: outputGuardrailResult.blockReason },
+        'Output guardrail blocked message after LLM call',
+      );
+
+      await this.aiRepo.createMessage({
+        conversationId,
+        role: AiRole.ASSISTANT,
+        content: outputGuardrailResult.responseMessage,
+        blocked: true,
+        blockReason: outputGuardrailResult.blockReason,
+      });
+
+      await this.aiRepo.updateConversationTimestamp(conversationId);
+
+      return {
+        success: false,
+        message: outputGuardrailResult.responseMessage,
+        data: {
+          conversationId,
+          reply: null,
+          blocked: true,
+          blockReason: outputGuardrailResult.blockReason,
+        },
+      };
+    }
+    // ── End Output Guardrail Check ───────────────────────────────────
+
+    // Truncate jika > 500 karakter
+    if (finalContent.length > 500) {
+      finalContent = finalContent.substring(0, 500) + '...';
+    }
+
+    // Tambahkan Disclaimer
+    const disclaimer = '\n\n---\nCatatan: Informasi ini bersifat edukatif dan bukan pengganti saran, diagnosis, atau penanganan dari tenaga medis/dokter profesional.';
+    finalContent += disclaimer;
+
     await this.aiRepo.createMessage({
       conversationId,
       role: AiRole.ASSISTANT,
-      content: result.content,
+      content: finalContent,
       tokensUsed: result.tokensUsed,
       model: result.model,
     });
@@ -162,7 +205,7 @@ export class AiService {
       message: 'Pesan berhasil diproses',
       data: {
         conversationId,
-        reply: result.content,
+        reply: finalContent,
         blocked: false,
       },
     };

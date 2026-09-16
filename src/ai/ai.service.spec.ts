@@ -33,6 +33,7 @@ const mockLogger = {
 
 const mockGuardrail = {
   check: jest.fn(),
+  checkOutput: jest.fn(),
 };
 
 describe('AiService', () => {
@@ -227,9 +228,10 @@ describe('AiService', () => {
   // ─────────────────────────────────────────────────────────────────
   // Skenario 9: chat berhasil → struktur response
   // ─────────────────────────────────────────────────────────────────
-  it('should return correct ChatResponseDto on success', async () => {
+  it('should return correct ChatResponseDto on success with disclaimer', async () => {
     mockAiRepo.countConversationsByUser.mockResolvedValue(0);
-    mockGuardrail.check.mockReturnValue(null); // aman, tidak diblok
+    mockGuardrail.check.mockReturnValue(null); // input aman
+    mockGuardrail.checkOutput.mockReturnValue(null); // output aman
     setupHappyPathMocks('conv-abc');
 
     const result = await service.chat('user-1', { message: 'halo' });
@@ -239,10 +241,32 @@ describe('AiService', () => {
       message: 'Pesan berhasil diproses',
       data: {
         conversationId: 'conv-abc',
-        reply: 'Halo!',
+        reply:
+          'Halo!\n\n---\nCatatan: Informasi ini bersifat edukatif dan bukan pengganti saran, diagnosis, atau penanganan dari tenaga medis/dokter profesional.',
         blocked: false,
       },
     });
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // Skenario 9b: Output Guardrail — diblok karena diagnosis medis
+  // ─────────────────────────────────────────────────────────────────
+  it('should block response if output guardrail triggers', async () => {
+    mockAiRepo.countConversationsByUser.mockResolvedValue(0);
+    mockGuardrail.check.mockReturnValue(null); // input aman
+    const outputGuardrailResult = {
+      blockReason: BLOCK_REASONS.MEDICAL_DIAGNOSIS,
+      responseMessage: 'Maaf, saya tidak dapat memberikan diagnosis medis.',
+    };
+    mockGuardrail.checkOutput.mockReturnValue(outputGuardrailResult);
+    setupHappyPathMocks('conv-abc');
+
+    const result = await service.chat('user-1', { message: 'halo' });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toBe(outputGuardrailResult.responseMessage);
+    expect(result.data.blocked).toBe(true);
+    expect(result.data.blockReason).toBe(BLOCK_REASONS.MEDICAL_DIAGNOSIS);
   });
 
   // ─────────────────────────────────────────────────────────────────
