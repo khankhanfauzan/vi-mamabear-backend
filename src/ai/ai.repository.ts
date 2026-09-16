@@ -132,6 +132,62 @@ export class AiRepository {
     }));
   }
 
+  async findProductsByIds(ids: number[]) {
+    if (ids.length === 0) return [];
+
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        totalSold: true,
+        ingredients: true,
+        category: { select: { name: true } },
+        variants: {
+          orderBy: { priceIdr: 'asc' },
+          take: 1,
+          select: { priceIdr: true },
+        },
+        images: {
+          orderBy: { sortOrder: 'asc' },
+          take: 1,
+          select: { imageUrl: true },
+        },
+        reviews: {
+          select: { rating: true },
+        },
+      },
+    });
+
+    return products.map((p) => {
+      const reviewCount = p.reviews.length;
+      const avgRating =
+        reviewCount > 0
+          ? Math.round(
+              (p.reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount) *
+                10,
+            ) / 10
+          : 0;
+      const price = Number(p.variants[0]?.priceIdr ?? 0);
+
+      return {
+        id: p.id,
+        name: p.name,
+        slug: p.slug,
+        category: p.category?.name ?? null,
+        imageUrl: p.images[0]?.imageUrl ?? null,
+        price,
+        formattedPrice: `Rp ${price.toLocaleString('id-ID')}`,
+        rating: avgRating,
+        reviewCount,
+        totalSold: p.totalSold,
+        shortDescription: p.description ?? p.ingredients ?? null,
+      };
+    });
+  }
+
   async deleteConversation(conversationId: string, userId: string) {
     const result = await this.prisma.aiConversation.deleteMany({
       where: { id: conversationId, userId },

@@ -16,6 +16,8 @@ import { GuardrailService } from './guardrail/guardrail.service';
 const MAX_INPUT_LENGTH = 1000;
 const MAX_CONVERSATIONS_PER_USER = 50;
 
+const PRODUCT_IDS_REGEX = /\[PRODUCT_IDS:\s*([\d,\s]+)\]/;
+
 const SYSTEM_PROMPT_BASE = `Kamu adalah asisten kesehatan untuk MamaBear, platform produk ibu dan bayi.
 
 Batasan kamu:
@@ -130,6 +132,7 @@ export class AiService {
         data: {
           conversationId: blockedConversationId,
           reply: null,
+          products: [],
           blocked: true,
           blockReason: guardrailResult.blockReason,
         },
@@ -214,6 +217,7 @@ export class AiService {
         data: {
           conversationId,
           reply: null,
+          products: [],
           blocked: true,
           blockReason: outputGuardrailResult.blockReason,
         },
@@ -231,6 +235,42 @@ export class AiService {
       '\n\n---\nCatatan: Informasi ini bersifat edukatif dan bukan pengganti saran, diagnosis, atau penanganan dari tenaga medis/dokter profesional.';
     finalContent += disclaimer;
 
+    // ── Extract PRODUCT_IDS from reply ────────────────────────────────
+    let recommendedProducts: {
+      id: number;
+      name: string;
+      slug: string;
+      category: string | null;
+      imageUrl: string | null;
+      price: number;
+      formattedPrice: string;
+      rating: number;
+      reviewCount: number;
+      totalSold: number;
+      shortDescription: string | null;
+    }[] = [];
+
+    const productTagMatch = finalContent.match(PRODUCT_IDS_REGEX);
+
+    if (productTagMatch) {
+      const idsStr = productTagMatch[1];
+      const productIds = idsStr
+        .split(',')
+        .map((id) => parseInt(id.trim(), 10))
+        .filter((id) => !isNaN(id));
+
+      // Remove the tag from the reply text
+      finalContent = finalContent.replace(PRODUCT_IDS_REGEX, '').trim();
+
+      // Re-add disclaimer after cleaning
+      finalContent += disclaimer;
+
+      if (productIds.length > 0) {
+        recommendedProducts = await this.aiRepo.findProductsByIds(productIds);
+      }
+    }
+    // ── End Extract PRODUCT_IDS ───────────────────────────────────────
+
     await this.aiRepo.createMessage({
       conversationId,
       role: AiRole.ASSISTANT,
@@ -247,6 +287,7 @@ export class AiService {
       data: {
         conversationId,
         reply: finalContent,
+        products: recommendedProducts,
         blocked: false,
       },
     };
