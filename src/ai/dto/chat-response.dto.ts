@@ -17,7 +17,7 @@ export class ChatResponseDto {
   })
   data: {
     conversationId: string;
-    reply: string;
+    reply: string | null;
     blocked: boolean;
     blockReason?: string;
   };

@@ -11,6 +11,7 @@ import { ChatResponseDto } from './dto/chat-response.dto';
 import { AiRole } from '@/generated/prisma';
 import { ConversationSummaryDto } from './dto/conversation-summary.dto';
 import { ConversationHistoryDto } from './dto/conversation-history.dto';
+import { GuardrailService } from './guardrail/guardrail.service';
 
 const MAX_INPUT_LENGTH = 1000;
 const MAX_CONVERSATIONS_PER_USER = 50;
@@ -34,6 +35,7 @@ export class AiService {
     private readonly aiRepo: AiRepository,
     private readonly openRouter: OpenRouterClient,
     private readonly logger: PinoLogger,
+    private readonly guardrail: GuardrailService,
   ) {
     this.logger.setContext(AiService.name);
   }
@@ -44,6 +46,64 @@ export class AiService {
         'Pesan terlalu panjang. Maksimal 1000 karakter.',
       );
     }
+
+    // ── Guardrail check ──────────────────────────────────────────────
+    const guardrailResult = this.guardrail.check(dto.message);
+
+    if (guardrailResult) {
+      this.logger.warn(
+        { userId, blockReason: guardrailResult.blockReason },
+        'Guardrail blocked message before LLM call',
+      );
+
+      // Resolve / buat conversation terlebih dahulu
+      let blockedConversationId = dto.conversationId;
+
+      if (blockedConversationId) {
+        const existing = await this.aiRepo.findConversationById(
+          blockedConversationId,
+          userId,
+        );
+        if (!existing) {
+          throw new NotFoundException('Percakapan tidak ditemukan.');
+        }
+      } else {
+        const conversation = await this.aiRepo.createConversation(userId);
+        blockedConversationId = conversation.id;
+      }
+
+      // Simpan user message dengan flag blocked
+      await this.aiRepo.createMessage({
+        conversationId: blockedConversationId,
+        role: AiRole.USER,
+        content: dto.message,
+        blocked: true,
+        blockReason: guardrailResult.blockReason,
+      });
+
+      // Simpan assistant message (respons guardrail) untuk riwayat audit
+      await this.aiRepo.createMessage({
+        conversationId: blockedConversationId,
+        role: AiRole.ASSISTANT,
+        content: guardrailResult.responseMessage,
+        blocked: true,
+        blockReason: guardrailResult.blockReason,
+      });
+
+      await this.aiRepo.updateConversationTimestamp(blockedConversationId);
+
+      return {
+        success: false,
+        message: guardrailResult.responseMessage,
+        data: {
+          conversationId: blockedConversationId,
+          reply: null,
+          blocked: true,
+          blockReason: guardrailResult.blockReason,
+        },
+      };
+    }
+    // ── End guardrail check ──────────────────────────────────────────
 
     let conversationId = dto.conversationId;
 
