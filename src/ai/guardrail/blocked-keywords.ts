@@ -11,6 +11,8 @@ export const BLOCK_REASONS = {
   EMERGENCY: 'EMERGENCY_MEDICAL_QUERY',
   PRESCRIPTION: 'PRESCRIPTION_REQUEST',
   OUT_OF_SCOPE: 'OUT_OF_SCOPE',
+  MEDICAL_DIAGNOSIS: 'MEDICAL_DIAGNOSIS',
+  SPECIFIC_PRESCRIPTION: 'SPECIFIC_PRESCRIPTION',
 } as const;
 
 export type BlockReason = (typeof BLOCK_REASONS)[keyof typeof BLOCK_REASONS];
@@ -168,4 +170,27 @@ export const OUT_OF_SCOPE_KEYWORDS: RegExp[] = [
   /hukum\s*(pidana|perdata|bisnis)/i,
   /cara\s*mengurus\s*(surat|akta|ktp|sim|stnk)/i,
   /pajak\s*(penghasilan|kendaraan)/i,
+];
+
+// ─────────────────────────────────────────────────────────────
+// 4. Diagnosis Medis (Output Guardrail)
+// ─────────────────────────────────────────────────────────────
+export const OUTPUT_MEDICAL_DIAGNOSIS_KEYWORDS: RegExp[] = [
+  /diagnosis\s*(anda|kamu)?\s*adalah/i,
+  /anda\s*(mengalami|menderita|terkena)/i,
+  /gejala\s*(ini|tersebut)\s*menunjukkan/i,
+  /kemungkinan\s*besar\s*anda\s*mengalami/i,
+  /ini\s*adalah\s*(tanda|gejala)\s*dari/i,
+  /penyakit\s*ini\s*adalah/i,
+];
+
+// ─────────────────────────────────────────────────────────────
+// 5. Rekomendasi Obat Spesifik (Output Guardrail)
+// ─────────────────────────────────────────────────────────────
+export const OUTPUT_PRESCRIPTION_KEYWORDS: RegExp[] = [
+  /rekomendasi\s*obat/i,
+  /minum\s*obat/i,
+  /konsumsi\s*(paracetamol|parasetamol|ibuprofen|amoksisilin|antibiotik|asam\s*mefenamat)/i,
+  /dosis/i,
+  /diminum\s*[0-9]+\s*(x|kali)/i,
 ];
