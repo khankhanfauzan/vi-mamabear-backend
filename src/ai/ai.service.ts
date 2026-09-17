@@ -154,7 +154,11 @@ export class AiService {
 
     if (outputGuardrailResult) {
       this.logger.warn(
-        { userId, conversationId, blockReason: outputGuardrailResult.blockReason },
+        {
+          userId,
+          conversationId,
+          blockReason: outputGuardrailResult.blockReason,
+        },
         'Output guardrail blocked message after LLM call',
       );
 
@@ -187,7 +191,8 @@ export class AiService {
     }
 
     // Tambahkan Disclaimer
-    const disclaimer = '\n\n---\nCatatan: Informasi ini bersifat edukatif dan bukan pengganti saran, diagnosis, atau penanganan dari tenaga medis/dokter profesional.';
+    const disclaimer =
+      '\n\n---\nCatatan: Informasi ini bersifat edukatif dan bukan pengganti saran, diagnosis, atau penanganan dari tenaga medis/dokter profesional.';
     finalContent += disclaimer;
 
     await this.aiRepo.createMessage({
@@ -279,8 +284,6 @@ export class AiService {
         messages.push({ role: 'assistant', content: msg.content });
       }
     }
-
-    messages.push({ role: 'user', content: userMessage });
 
     return messages;
   }
