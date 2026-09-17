@@ -25,6 +25,8 @@ describe('AiService', () => {
       findMessagesByConversation: jest.fn(),
       findConversationsByUser: jest.fn(),
       findMessagesByConversationId: jest.fn(),
+      getActiveProductsForContext: jest.fn().mockResolvedValue([]),
+      findProductsByIds: jest.fn().mockResolvedValue([]),
     };
 
     const mockOpenRouter = {
