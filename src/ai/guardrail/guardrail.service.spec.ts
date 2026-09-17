@@ -110,7 +110,7 @@ describe('GuardrailService', () => {
 
     describe('SPECIFIC_PRESCRIPTION', () => {
       const prescriptionOutputs = [
-        'Rekomendasi obat untuk kondisi Anda adalah Amoksisilin 500mg.',
+        'Saya rekomendasikan obat Amoksisilin 500mg untuk kondisi ini.',
         'Silakan minum obat paracetamol 3 kali sehari.',
         'Konsumsi ibuprofen dosis 400mg jika nyeri perut.',
         'Dosis yang tepat adalah 1 sendok teh setiap 8 jam.',
