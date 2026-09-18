@@ -18,26 +18,30 @@ const MAX_CONVERSATIONS_PER_USER = 50;
 
 const PRODUCT_IDS_REGEX = /\[PRODUCT_IDS:\s*([\d,\s]+)\]/;
 
-const SYSTEM_PROMPT_BASE = `Kamu adalah "Mama Bear AI", asisten kesehatan resmi, ramah, dan profesional untuk MamaBear, platform nutrisi dan produk ibu hamil, menyusui, serta perawatan bayi. Gunakan bahasa Indonesia yang mudah dipahami, hangat, dengan sapaan "Mama" atau "Ma". Jawablah dengan ringkas (maksimal 3-4 kalimat).
+const SYSTEM_PROMPT_BASE = `Kamu adalah "Mama Bear AI", asisten kesehatan resmi, ramah, hangat, dan profesional untuk MamaBear, platform nutrisi dan perawatan ibu hamil, menyusui, serta bayi.
 
-# TUGAS UTAMA
-1. Berikan edukasi ringan dan tips seputar laktasi (ASI), kehamilan, dan perawatan bayi.
-2. Jawab pertanyaan dan rekomendasikan produk MamaBear HANYA berdasarkan daftar produk yang tersedia.
+# ATURAN BAHASA & GAYA KOMUNIKASI (SANGAT KETAT):
+1. WAJIB SELALU MENJAWAB HANYA DALAM BAHASA INDONESIA. DILARANG KERAS menggunakan Bahasa Inggris atau bahasa lainnya.
+2. Selalu gunakan sapaan hangat "Mama" atau "Ma" dengan nada empati, ramah, dan solutif.
+3. Jawablah dengan ringkas dan to the point (maksimal 3-4 kalimat).
+4. DILARANG KERAS menampilkan proses berpikir, analisis internal, atau catatan evaluasi (contoh dilarang: "The user is asking...", "I need to check...", "Looking at the data...", "In conclusion..."). Balasanmu harus LANGSUNG berupa pesan ramah kepada Mama.
 
-# ATURAN & BATASAN (GUARDRAILS) - WAJIB DIPATUHI:
+# ATURAN REKOMENDASI PRODUK (SANGAT PENTING):
+1. DILARANG menuliskan daftar/list produk mentah, daftar ID produk, atau spesifikasi panjang di dalam teks pesan (karena kartu produk interaktif akan dimunculkan otomatis oleh sistem dari data produk).
+2. Di dalam teks pesan, rekomendasikan produk secara natural dan ramah dalam 1-2 kalimat (misal: menyebutkan keunggulan produk yang relevan dengan pertanyaan Mama).
+3. Jika merekomendasikan produk dari data yang tersedia, kamu WAJIB meletakkan tag [PRODUCT_IDS: id1, id2] HANYA DI BARIS PALING BAWAH teks jawabanmu.
+4. Jika TIDAK merekomendasikan produk apapun, JANGAN cantumkan tag [PRODUCT_IDS] sama sekali.
+
+# CONTOH OUTPUT YANG BENAR:
+"Halo Ma! Untuk bentuk kapsul praktis pelancar ASI tanpa rasa herba yang kuat, Mama Bear sangat merekomendasikan MamaBear ASI Booster Kapsul. Kandungan daun katuk dan kelor di dalamnya efektif membantu meningkatkan produksi dan nutrisi ASI Mama. Tetap penuhi asupan cairan ya, Ma!
+[PRODUCT_IDS: 5]"
+
+# ATURAN & BATASAN KESEHATAN (GUARDRAILS) - WAJIB:
 - JANGAN PERNAH memberikan diagnosis medis yang mutlak.
-- JANGAN merekomendasikan atau menyebutkan dosis obat kimia/keras, bahan berbahaya, atau tindakan medis (seperti aborsi).
-- JIKA pengguna menyebutkan kondisi darurat medis (contoh: pendarahan hebat, kejang, pecah ketuban dini, sesak napas akut), STOP memberikan tips dan arahkan pengguna untuk SEGERA menghubungi dokter, bidan, atau IGD terdekat.
-- JIKA pengguna bertanya di luar topik kehamilan, menyusui, bayi, atau produk MamaBear (misal: politik, cuaca, teknologi, kompetitor), tolak dengan ramah menggunakan template: "Maaf Ma, Mama Bear AI saat ini hanya dapat membantu seputar nutrisi laktasi, kehamilan, dan informasi produk MamaBear. Ada yang bisa dibantu terkait ASI?"
-- JANGAN mengarang harga, nama produk, atau varian yang tidak tercantum dalam Data Produk di atas. Jika produk yang dicari tidak ada di data, katakan bahwa MamaBear belum menyediakannya.
-
-# ATURAN OUTPUT (REKOMENDASI PRODUK)
-Jika dalam jawabanmu kamu menyarankan atau merekomendasikan salah satu (atau lebih) produk dari daftar di atas, kamu WAJIB menuliskan ID dari produk tersebut di barisan Paling Bawah jawabanmu dengan format pasti seperti ini: [PRODUCT_IDS: id1, id2]
-
-Contoh Output Rekomendasi:
-"Pilihan tepat sekali, Ma! Untuk camilan lezat bernutrisi tinggi pelancar ASI, Mama Bear sangat merekomendasikan Kukis Almond Oat yang kaya serat.\n[PRODUCT_IDS: 1, 4]"
-
-Jika kamu TIDAK merekomendasikan produk apapun, JANGAN cantumkan tag [PRODUCT_IDS] sama sekali.`;
+- JANGAN merekomendasikan obat kimia keras, bahan berbahaya, atau tindakan medis berbahaya.
+- JIKA pengguna menyebutkan kondisi darurat medis (pendarahan hebat, kejang, pecah ketuban dini, sesak napas akut), SEGERA arahkan pengguna ke dokter/IGD terdekat.
+- JIKA pengguna bertanya di luar topik kehamilan, menyusui, bayi, atau produk MamaBear, tolak dengan ramah: "Maaf Ma, Mama Bear AI saat ini hanya dapat membantu seputar nutrisi laktasi, kehamilan, dan informasi produk MamaBear. Ada yang bisa dibantu terkait ASI?"
+- JANGAN mengarang produk yang tidak ada di [DATA_PRODUK_AKTIF].`;
 
 type ProductContext = {
   id: number;
@@ -67,7 +71,52 @@ function buildSystemPrompt(products: ProductContext[]): string {
 [DATA_PRODUK_AKTIF]:
 ${productList}
 
-PENTING: Kamu HANYA boleh merekomendasikan produk dari daftar di atas. Jika ditanya produk yang tidak ada di daftar, tolak dengan sopan.`;
+PENTING:
+1. Rekomendasikan HANYA produk dari daftar di atas yang relevan dengan kebutuhan Mama.
+2. JANGAN salin atau ketik ulang daftar produk di atas ke dalam jawabanmu. Cukup rekomendasikan dengan menyebutkan nama produk dan cantumkan tag [PRODUCT_IDS: id] di baris paling bawah.`;
+}
+
+function sanitizeAiReply(
+  content: string,
+  recommendedProducts: { name: string }[],
+): string {
+  let cleaned = content;
+
+  // 1. Hapus tag <think>...</think>
+  cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+  // 2. Bersihkan jika LLM membocorkan internal thought / English reasoning
+  const isReasoningPreamble =
+    /^(?:The user is asking|I need to check|Looking at the data|Looking at the provided)/i.test(
+      cleaned.trim(),
+    );
+
+  if (isReasoningPreamble) {
+    const matchConclusion = cleaned.match(
+      /(?:Yes,?\s*(?:ID\s*\d+\s*is\s*)?the\s*[\w\s-]*product:?\s*["']?([^"'\n]+)["']?|Therefore,?\s*([^.\n]+)|So,?\s*([^.\n]+))/i,
+    );
+    const conclusionName =
+      matchConclusion?.[1]?.trim() ||
+      matchConclusion?.[2]?.trim() ||
+      recommendedProducts[0]?.name;
+
+    if (conclusionName) {
+      cleaned = `Halo Ma! Untuk produk yang Mama cari, Mama Bear sangat merekomendasikan ${conclusionName.replace(/^["'\s]+|["'\s]+$/g, '')}. Produk ini diformulasikan khusus untuk mendukung kebutuhan nutrisi dan laktasi Mama.`;
+    } else if (recommendedProducts.length > 0) {
+      cleaned = `Halo Ma! Untuk produk yang Mama cari, Mama Bear sangat merekomendasikan ${recommendedProducts[0].name}. Produk ini diformulasikan khusus untuk mendukung kebutuhan nutrisi dan laktasi Mama.`;
+    } else {
+      cleaned = `Halo Ma! Mama Bear siap membantu kebutuhan nutrisi laktasi dan kehamilan Mama. Ada yang bisa kami bantu seputar produk MamaBear?`;
+    }
+  }
+
+  // 3. Hapus sisa format daftar ID jika LLM menuliskan "- ID 1: ..." atau "ID 1: ..." di dalam teks
+  cleaned = cleaned
+    .replace(/^[-\s*]*ID\s*\d+:.*$/gmi, '')
+    .replace(/^[-\s*]*ID\s*$/gmi, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  return cleaned;
 }
 
 @Injectable()
@@ -281,22 +330,41 @@ export class AiService {
     }[] = [];
 
     const productTagMatch = finalContent.match(PRODUCT_IDS_REGEX);
+    const matchedProductIds = new Set<number>();
 
     if (productTagMatch) {
       const idsStr = productTagMatch[1];
-      const productIds = idsStr
+      idsStr
         .split(',')
         .map((id) => parseInt(id.trim(), 10))
-        .filter((id) => !isNaN(id));
+        .filter((id) => !isNaN(id))
+        .forEach((id) => matchedProductIds.add(id));
 
       // Remove the tag from the reply text
       finalContent = finalContent.replace(PRODUCT_IDS_REGEX, '').trim();
-
-      if (productIds.length > 0) {
-        recommendedProducts = await this.aiRepo.findProductsByIds(productIds);
+    } else {
+      // Fallback: Jika LLM menyebutkan ID produk (misal: "ID 5", "ID: 5") tanpa format tag [PRODUCT_IDS: ...]
+      const availableIds = new Set(products.map((p) => p.id));
+      const fallbackMatches = finalContent.matchAll(
+        /(?:ID|produk)\s*[:#-]?\s*(\d+)/gi,
+      );
+      for (const match of fallbackMatches) {
+        const id = parseInt(match[1], 10);
+        if (availableIds.has(id)) {
+          matchedProductIds.add(id);
+        }
       }
     }
+
+    if (matchedProductIds.size > 0) {
+      recommendedProducts = await this.aiRepo.findProductsByIds(
+        Array.from(matchedProductIds),
+      );
+    }
     // ── End Extract PRODUCT_IDS ───────────────────────────────────────
+
+    // Bersihkan teks jawaban dari proses berpikir / listing ID berlebih
+    finalContent = sanitizeAiReply(finalContent, recommendedProducts);
 
     // Truncate jika > 500 karakter
     if (finalContent.length > 500) {

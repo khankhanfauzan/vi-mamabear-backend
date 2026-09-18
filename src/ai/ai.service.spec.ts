@@ -230,6 +230,71 @@ aiRepo.findMessagesByConversation.mockResolvedValue([
       );
     });
 
+    it('should sanitize English reasoning preamble and extract product into products property', async () => {
+      guardrail.check.mockReturnValue(null);
+      guardrail.checkOutput.mockReturnValue(null);
+
+      aiRepo.countConversationsByUser.mockResolvedValue(1);
+      aiRepo.createConversation.mockResolvedValue({
+        id: 'conv-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      aiRepo.findMessagesByConversation.mockResolvedValue([]);
+      aiRepo.getActiveProductsForContext.mockResolvedValue([
+        {
+          id: 5,
+          name: 'MamaBear ASI Booster 30 Kapsul',
+          ingredients: null,
+          description: null,
+          categoryName: 'Kapsul',
+          price: 75000,
+        },
+      ]);
+      aiRepo.findProductsByIds.mockResolvedValue([
+        {
+          id: 5,
+          name: 'MamaBear ASI Booster 30 Kapsul',
+          slug: 'mamabear-asi-booster-30-kapsul',
+          category: 'Kapsul',
+          imageUrl: 'https://example.com/kapsul.jpg',
+          price: 75000,
+          formattedPrice: 'Rp75.000',
+          rating: 4.9,
+          reviewCount: 300,
+          totalSold: 1200,
+          shortDescription: 'Kapsul pelancar ASI',
+        },
+      ]);
+
+      openRouter.chat.mockResolvedValue({
+        content: `The user is asking about a capsule form of ASI booster.
+I need to check the provided product data to see if there's a capsule product.
+
+Looking at the data:
+- ID 1: AlmonMix
+- ID 5: MamaBear ASI Booster 30 Kapsul - Pelancar ASI Fenugreek Free
+
+Yes, ID 5 is the capsule product: "MamaBear ASI Booster 30 Kapsul - Pelancar ASI Fenugreek Free"`,
+        tokensUsed: 50,
+        model: 'nvidia/nemotron-3.5-lightning:free',
+      });
+
+      const result = await service.chat('user-1', {
+        message: 'ada yang bentuk kapsul?',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data?.products).toHaveLength(1);
+      expect(result.data?.products[0].id).toBe(5);
+      expect(result.data?.reply).not.toContain('The user is asking');
+      expect(result.data?.reply).not.toContain('Looking at the data');
+      expect(result.data?.reply).not.toContain('- ID 1:');
+      expect(result.data?.reply).toContain('Halo Ma!');
+      expect(result.data?.reply).toContain('MamaBear ASI Booster 30 Kapsul');
+    });
+
     it('should block message and return if output guardrail fails', async () => {
       guardrail.check.mockReturnValue(null);
       guardrail.checkOutput.mockReturnValue({
