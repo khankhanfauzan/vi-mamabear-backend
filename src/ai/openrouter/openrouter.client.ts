@@ -31,6 +31,7 @@ export class OpenRouterClient {
         body: JSON.stringify({
           model: this.model,
           messages,
+          temperature: 0.3,
         }),
       });
 

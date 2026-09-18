@@ -87,6 +87,7 @@ aiRepo.findMessagesByConversation.mockResolvedValue([
     blockReason: null,
     tokensUsed: 0,
     model: '',
+    metadata: null,
   },
 ]);
 
@@ -171,6 +172,129 @@ aiRepo.findMessagesByConversation.mockResolvedValue([
       );
     });
 
+    it('should append disclaimer only once even when products are recommended', async () => {
+      guardrail.check.mockReturnValue(null);
+      guardrail.checkOutput.mockReturnValue(null);
+
+      aiRepo.countConversationsByUser.mockResolvedValue(1);
+      aiRepo.createConversation.mockResolvedValue({
+        id: 'conv-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      aiRepo.findMessagesByConversation.mockResolvedValue([]);
+      aiRepo.findProductsByIds.mockResolvedValue([
+        {
+          id: 1,
+          name: 'Teh Pelancar ASI',
+          slug: 'teh-pelancar-asi',
+          category: 'Herbal',
+          imageUrl: 'https://example.com/image.jpg',
+          price: 50000,
+          formattedPrice: 'Rp50.000',
+          rating: 4.8,
+          reviewCount: 120,
+          totalSold: 500,
+          shortDescription: 'Teh herbal',
+        },
+      ]);
+
+      openRouter.chat.mockResolvedValue({
+        content: 'Ini teh yang cocok untuk Mama. [PRODUCT_IDS: 1]',
+        tokensUsed: 15,
+        model: 'mock-model',
+      });
+
+      const result = await service.chat('user-1', {
+        message: 'rekomendasi teh',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data?.products).toHaveLength(1);
+      expect(result.data?.reply).not.toContain('[PRODUCT_IDS:');
+      const disclaimerMatches =
+        result.data?.reply?.match(
+          /Catatan: Informasi ini bersifat edukatif/g,
+        ) || [];
+      expect(disclaimerMatches).toHaveLength(1);
+      expect(aiRepo.createMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          role: AiRole.ASSISTANT,
+          metadata: {
+            products: expect.arrayContaining([
+              expect.objectContaining({ id: 1, name: 'Teh Pelancar ASI' }),
+            ]),
+          },
+        }),
+      );
+    });
+
+    it('should sanitize English reasoning preamble and extract product into products property', async () => {
+      guardrail.check.mockReturnValue(null);
+      guardrail.checkOutput.mockReturnValue(null);
+
+      aiRepo.countConversationsByUser.mockResolvedValue(1);
+      aiRepo.createConversation.mockResolvedValue({
+        id: 'conv-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      aiRepo.findMessagesByConversation.mockResolvedValue([]);
+      aiRepo.getActiveProductsForContext.mockResolvedValue([
+        {
+          id: 5,
+          name: 'MamaBear ASI Booster 30 Kapsul',
+          ingredients: null,
+          description: null,
+          categoryName: 'Kapsul',
+          price: 75000,
+        },
+      ]);
+      aiRepo.findProductsByIds.mockResolvedValue([
+        {
+          id: 5,
+          name: 'MamaBear ASI Booster 30 Kapsul',
+          slug: 'mamabear-asi-booster-30-kapsul',
+          category: 'Kapsul',
+          imageUrl: 'https://example.com/kapsul.jpg',
+          price: 75000,
+          formattedPrice: 'Rp75.000',
+          rating: 4.9,
+          reviewCount: 300,
+          totalSold: 1200,
+          shortDescription: 'Kapsul pelancar ASI',
+        },
+      ]);
+
+      openRouter.chat.mockResolvedValue({
+        content: `The user is asking about a capsule form of ASI booster.
+I need to check the provided product data to see if there's a capsule product.
+
+Looking at the data:
+- ID 1: AlmonMix
+- ID 5: MamaBear ASI Booster 30 Kapsul - Pelancar ASI Fenugreek Free
+
+Yes, ID 5 is the capsule product: "MamaBear ASI Booster 30 Kapsul - Pelancar ASI Fenugreek Free"`,
+        tokensUsed: 50,
+        model: 'nvidia/nemotron-3.5-lightning:free',
+      });
+
+      const result = await service.chat('user-1', {
+        message: 'ada yang bentuk kapsul?',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data?.products).toHaveLength(1);
+      expect(result.data?.products[0].id).toBe(5);
+      expect(result.data?.reply).not.toContain('The user is asking');
+      expect(result.data?.reply).not.toContain('Looking at the data');
+      expect(result.data?.reply).not.toContain('- ID 1:');
+      expect(result.data?.reply).toContain('Halo Ma!');
+      expect(result.data?.reply).toContain('MamaBear ASI Booster 30 Kapsul');
+    });
+
     it('should block message and return if output guardrail fails', async () => {
       guardrail.check.mockReturnValue(null);
       guardrail.checkOutput.mockReturnValue({
@@ -206,6 +330,73 @@ aiRepo.findMessagesByConversation.mockResolvedValue([
           blocked: true,
         }),
       );
+    });
+  });
+
+  describe('getConversationHistory', () => {
+    it('should return conversation history including recommended products from metadata', async () => {
+      const mockProduct = {
+        id: 1,
+        name: 'Teh Pelancar ASI',
+        slug: 'teh-pelancar-asi',
+        category: 'Herbal',
+        imageUrl: 'https://example.com/image.jpg',
+        price: 50000,
+        formattedPrice: 'Rp50.000',
+        rating: 4.8,
+        reviewCount: 120,
+        totalSold: 500,
+        shortDescription: 'Teh herbal',
+      };
+
+      aiRepo.findMessagesByConversationId.mockResolvedValue({
+        id: 'conv-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        messages: [
+          {
+            id: 'msg-1',
+            conversationId: 'conv-1',
+            role: AiRole.USER,
+            content: 'Halo',
+            blocked: false,
+            blockReason: null,
+            tokensUsed: 0,
+            model: 'user',
+            metadata: null,
+            createdAt: new Date(),
+          },
+          {
+            id: 'msg-2',
+            conversationId: 'conv-1',
+            role: AiRole.ASSISTANT,
+            content: 'Halo Mama, ini rekomendasi produk.',
+            blocked: false,
+            blockReason: null,
+            tokensUsed: 20,
+            model: 'mock-model',
+            metadata: { products: [mockProduct] },
+            createdAt: new Date(),
+          },
+        ],
+      } as any);
+
+      const result = await service.getConversationHistory('conv-1', 'user-1');
+
+      expect(result.id).toBe('conv-1');
+      expect(result.messages).toHaveLength(2);
+      expect(result.messages[0].products).toEqual([]);
+      expect(result.messages[1].products).toHaveLength(1);
+      expect(result.messages[1].products[0].name).toBe('Teh Pelancar ASI');
+    });
+
+    it('should throw NotFoundException if conversation not found', async () => {
+      aiRepo.findMessagesByConversationId.mockResolvedValue(null);
+
+      await expect(
+        service.getConversationHistory('conv-not-found', 'user-1'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

@@ -1,7 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { AiRole } from '@/generated/prisma';
+import { RecommendedProductDto } from './chat-response.dto';
 
-class AiMessageDto {
+export class AiMessageDto {
   @ApiProperty({ example: 'msg-uuid-123' })
   id: string;
 
@@ -25,6 +26,13 @@ class AiMessageDto {
 
   @ApiProperty({ example: 'openrouter/deepseek/deepseek-chat' })
   model: string;
+
+  @ApiProperty({
+    type: [RecommendedProductDto],
+    description: 'Daftar rekomendasi produk yang relevan dengan pesan asisten',
+    example: [],
+  })
+  products: RecommendedProductDto[];
 
   @ApiProperty({ example: '2026-09-12T00:08:24.830Z' })
   createdAt: Date;
