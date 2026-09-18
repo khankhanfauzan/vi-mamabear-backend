@@ -7,7 +7,7 @@ import { PinoLogger } from 'pino-nestjs';
 import { AiRepository } from './ai.repository';
 import { OpenRouterClient } from './openrouter/openrouter.client';
 import { ChatDto } from './dto/chat.dto';
-import { ChatResponseDto } from './dto/chat-response.dto';
+import { ChatResponseDto, RecommendedProductDto } from './dto/chat-response.dto';
 import { AiRole } from '@/generated/prisma';
 import { ConversationSummaryDto } from './dto/conversation-summary.dto';
 import { ConversationHistoryDto } from './dto/conversation-history.dto';
@@ -133,7 +133,7 @@ export class AiService {
 
       await this.aiRepo.updateConversationTimestamp(blockedConversationId);
 
-      return {
+      const response: ChatResponseDto = {
         success: false,
         message: guardrailResult.responseMessage,
         data: {
@@ -144,6 +144,17 @@ export class AiService {
           blockReason: guardrailResult.blockReason,
         },
       };
+
+      this.logger.info(
+        {
+          userId,
+          conversationId: blockedConversationId,
+          response,
+        },
+        'Chat API response sent (blocked by input guardrail)',
+      );
+
+      return response;
     }
     // ── End guardrail check ──────────────────────────────────────────
 
@@ -193,6 +204,17 @@ export class AiService {
 
     const result = await this.openRouter.chat(messages);
 
+    this.logger.info(
+      {
+        userId,
+        conversationId,
+        model: result.model,
+        tokensUsed: result.tokensUsed,
+        rawContent: result.content,
+      },
+      'OpenRouter API response received',
+    );
+
     let finalContent = result.content;
 
     // ── Output Guardrail Check ───────────────────────────────────────
@@ -218,7 +240,7 @@ export class AiService {
 
       await this.aiRepo.updateConversationTimestamp(conversationId);
 
-      return {
+      const response: ChatResponseDto = {
         success: false,
         message: outputGuardrailResult.responseMessage,
         data: {
@@ -229,18 +251,19 @@ export class AiService {
           blockReason: outputGuardrailResult.blockReason,
         },
       };
+
+      this.logger.info(
+        {
+          userId,
+          conversationId,
+          response,
+        },
+        'Chat API response sent (blocked by output guardrail)',
+      );
+
+      return response;
     }
     // ── End Output Guardrail Check ───────────────────────────────────
-
-    // Truncate jika > 500 karakter
-    if (finalContent.length > 500) {
-      finalContent = finalContent.substring(0, 500) + '...';
-    }
-
-    // Tambahkan Disclaimer
-    const disclaimer =
-      '\n\n---\nCatatan: Informasi ini bersifat edukatif dan bukan pengganti saran, diagnosis, atau penanganan dari tenaga medis/dokter profesional.';
-    finalContent += disclaimer;
 
     // ── Extract PRODUCT_IDS from reply ────────────────────────────────
     let recommendedProducts: {
@@ -269,14 +292,21 @@ export class AiService {
       // Remove the tag from the reply text
       finalContent = finalContent.replace(PRODUCT_IDS_REGEX, '').trim();
 
-      // Re-add disclaimer after cleaning
-      finalContent += disclaimer;
-
       if (productIds.length > 0) {
         recommendedProducts = await this.aiRepo.findProductsByIds(productIds);
       }
     }
     // ── End Extract PRODUCT_IDS ───────────────────────────────────────
+
+    // Truncate jika > 500 karakter
+    if (finalContent.length > 500) {
+      finalContent = finalContent.substring(0, 500) + '...';
+    }
+
+    // Tambahkan Disclaimer (hanya sekali)
+    const disclaimer =
+      '\n\n---\nCatatan: Informasi ini bersifat edukatif dan bukan pengganti saran, diagnosis, atau penanganan dari tenaga medis/dokter profesional.';
+    finalContent += disclaimer;
 
     await this.aiRepo.createMessage({
       conversationId,
@@ -284,11 +314,15 @@ export class AiService {
       content: finalContent,
       tokensUsed: result.tokensUsed,
       model: result.model,
+      metadata:
+        recommendedProducts.length > 0
+          ? { products: recommendedProducts }
+          : undefined,
     });
 
     await this.aiRepo.updateConversationTimestamp(conversationId);
 
-    return {
+    const response: ChatResponseDto = {
       success: true,
       message: 'Pesan berhasil diproses',
       data: {
@@ -298,6 +332,20 @@ export class AiService {
         blocked: false,
       },
     };
+
+    this.logger.info(
+      {
+        userId,
+        conversationId,
+        tokensUsed: result.tokensUsed,
+        model: result.model,
+        recommendedProductsCount: recommendedProducts.length,
+        response,
+      },
+      'Chat API response sent successfully',
+    );
+
+    return response;
   }
 
   async getConversations(userId: string): Promise<ConversationSummaryDto[]> {
@@ -337,17 +385,30 @@ export class AiService {
       userId: conversation.userId,
       createdAt: conversation.createdAt,
       updatedAt: conversation.updatedAt,
-      messages: conversation.messages.map((msg) => ({
-        id: msg.id,
-        conversationId: msg.conversationId,
-        role: msg.role,
-        content: msg.content,
-        blocked: msg.blocked,
-        blockReason: msg.blockReason,
-        tokensUsed: msg.tokensUsed,
-        model: msg.model,
-        createdAt: msg.createdAt,
-      })),
+      messages: conversation.messages.map((msg) => {
+        let products: RecommendedProductDto[] = [];
+        if (msg.metadata) {
+          const meta = msg.metadata as any;
+          if (Array.isArray(meta)) {
+            products = meta;
+          } else if (Array.isArray(meta.products)) {
+            products = meta.products;
+          }
+        }
+
+        return {
+          id: msg.id,
+          conversationId: msg.conversationId,
+          role: msg.role,
+          content: msg.content,
+          blocked: msg.blocked,
+          blockReason: msg.blockReason,
+          tokensUsed: msg.tokensUsed,
+          model: msg.model,
+          products,
+          createdAt: msg.createdAt,
+        };
+      }),
     };
   }
 

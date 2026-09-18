@@ -87,6 +87,7 @@ aiRepo.findMessagesByConversation.mockResolvedValue([
     blockReason: null,
     tokensUsed: 0,
     model: '',
+    metadata: null,
   },
 ]);
 
@@ -171,6 +172,64 @@ aiRepo.findMessagesByConversation.mockResolvedValue([
       );
     });
 
+    it('should append disclaimer only once even when products are recommended', async () => {
+      guardrail.check.mockReturnValue(null);
+      guardrail.checkOutput.mockReturnValue(null);
+
+      aiRepo.countConversationsByUser.mockResolvedValue(1);
+      aiRepo.createConversation.mockResolvedValue({
+        id: 'conv-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      aiRepo.findMessagesByConversation.mockResolvedValue([]);
+      aiRepo.findProductsByIds.mockResolvedValue([
+        {
+          id: 1,
+          name: 'Teh Pelancar ASI',
+          slug: 'teh-pelancar-asi',
+          category: 'Herbal',
+          imageUrl: 'https://example.com/image.jpg',
+          price: 50000,
+          formattedPrice: 'Rp50.000',
+          rating: 4.8,
+          reviewCount: 120,
+          totalSold: 500,
+          shortDescription: 'Teh herbal',
+        },
+      ]);
+
+      openRouter.chat.mockResolvedValue({
+        content: 'Ini teh yang cocok untuk Mama. [PRODUCT_IDS: 1]',
+        tokensUsed: 15,
+        model: 'mock-model',
+      });
+
+      const result = await service.chat('user-1', {
+        message: 'rekomendasi teh',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data?.products).toHaveLength(1);
+      expect(result.data?.reply).not.toContain('[PRODUCT_IDS:');
+      const disclaimerMatches =
+        result.data?.reply?.match(
+          /Catatan: Informasi ini bersifat edukatif/g,
+        ) || [];
+      expect(disclaimerMatches).toHaveLength(1);
+      expect(aiRepo.createMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          role: AiRole.ASSISTANT,
+          metadata: {
+            products: expect.arrayContaining([
+              expect.objectContaining({ id: 1, name: 'Teh Pelancar ASI' }),
+            ]),
+          },
+        }),
+      );
+    });
+
     it('should block message and return if output guardrail fails', async () => {
       guardrail.check.mockReturnValue(null);
       guardrail.checkOutput.mockReturnValue({
@@ -206,6 +265,73 @@ aiRepo.findMessagesByConversation.mockResolvedValue([
           blocked: true,
         }),
       );
+    });
+  });
+
+  describe('getConversationHistory', () => {
+    it('should return conversation history including recommended products from metadata', async () => {
+      const mockProduct = {
+        id: 1,
+        name: 'Teh Pelancar ASI',
+        slug: 'teh-pelancar-asi',
+        category: 'Herbal',
+        imageUrl: 'https://example.com/image.jpg',
+        price: 50000,
+        formattedPrice: 'Rp50.000',
+        rating: 4.8,
+        reviewCount: 120,
+        totalSold: 500,
+        shortDescription: 'Teh herbal',
+      };
+
+      aiRepo.findMessagesByConversationId.mockResolvedValue({
+        id: 'conv-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        messages: [
+          {
+            id: 'msg-1',
+            conversationId: 'conv-1',
+            role: AiRole.USER,
+            content: 'Halo',
+            blocked: false,
+            blockReason: null,
+            tokensUsed: 0,
+            model: 'user',
+            metadata: null,
+            createdAt: new Date(),
+          },
+          {
+            id: 'msg-2',
+            conversationId: 'conv-1',
+            role: AiRole.ASSISTANT,
+            content: 'Halo Mama, ini rekomendasi produk.',
+            blocked: false,
+            blockReason: null,
+            tokensUsed: 20,
+            model: 'mock-model',
+            metadata: { products: [mockProduct] },
+            createdAt: new Date(),
+          },
+        ],
+      } as any);
+
+      const result = await service.getConversationHistory('conv-1', 'user-1');
+
+      expect(result.id).toBe('conv-1');
+      expect(result.messages).toHaveLength(2);
+      expect(result.messages[0].products).toEqual([]);
+      expect(result.messages[1].products).toHaveLength(1);
+      expect(result.messages[1].products[0].name).toBe('Teh Pelancar ASI');
+    });
+
+    it('should throw NotFoundException if conversation not found', async () => {
+      aiRepo.findMessagesByConversationId.mockResolvedValue(null);
+
+      await expect(
+        service.getConversationHistory('conv-not-found', 'user-1'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

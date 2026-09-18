@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
-import { AiRole } from '@/generated/prisma';
+import { AiRole, Prisma } from '@/generated/prisma';
 
 @Injectable()
 export class AiRepository {
@@ -36,6 +36,7 @@ export class AiRepository {
     blockReason?: string;
     tokensUsed?: number;
     model?: string;
+    metadata?: Prisma.InputJsonValue;
   }) {
     return this.prisma.aiMessage.create({
       data: {
@@ -46,6 +47,7 @@ export class AiRepository {
         blockReason: params.blockReason,
         tokensUsed: params.tokensUsed ?? 0,
         model: params.model ?? 'openrouter/default',
+        metadata: params.metadata,
       },
     });
   }
