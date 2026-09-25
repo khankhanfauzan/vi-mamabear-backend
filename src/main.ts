@@ -52,14 +52,18 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
+  const port = process.env.PORT ?? 3000;
   if (process.env.NODE_ENV == 'ci') {
-    app.listen(process.env.PORT ?? 3000);
+    await app.listen(port, '0.0.0.0');
     const timeMs = 30000;
     console.log(`[ci] Aborting application within ${timeMs}`);
     setTimeout(async () => {
       await app.close();
       process.exit(0);
     }, 10000);
-  } else await app.listen(process.env.PORT ?? 3000);
+  } else {
+    await app.listen(port, '0.0.0.0');
+    console.log(`🚀 App listening on http://0.0.0.0:${port}`);
+  }
 }
 await bootstrap();
