@@ -7,7 +7,10 @@ import { PinoLogger } from 'pino-nestjs';
 import { AiRepository } from './ai.repository';
 import { OpenRouterClient } from './openrouter/openrouter.client';
 import { ChatDto } from './dto/chat.dto';
-import { ChatResponseDto, RecommendedProductDto } from './dto/chat-response.dto';
+import {
+  ChatResponseDto,
+  RecommendedProductDto,
+} from './dto/chat-response.dto';
 import { AiRole } from '@/generated/prisma';
 import { ConversationSummaryDto } from './dto/conversation-summary.dto';
 import { ConversationHistoryDto } from './dto/conversation-history.dto';
@@ -111,8 +114,8 @@ function sanitizeAiReply(
 
   // 3. Hapus sisa format daftar ID jika LLM menuliskan "- ID 1: ..." atau "ID 1: ..." di dalam teks
   cleaned = cleaned
-    .replace(/^[-\s*]*ID\s*\d+:.*$/gmi, '')
-    .replace(/^[-\s*]*ID\s*$/gmi, '')
+    .replace(/^[-\s*]*ID\s*\d+:.*$/gim, '')
+    .replace(/^[-\s*]*ID\s*$/gim, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
@@ -455,12 +458,12 @@ export class AiService {
       updatedAt: conversation.updatedAt,
       messages: conversation.messages.map((msg) => {
         let products: RecommendedProductDto[] = [];
-        if (msg.metadata) {
-          const meta = msg.metadata as any;
+        if (msg.metadata && typeof msg.metadata === 'object') {
+          const meta = msg.metadata as Record<string, unknown>;
           if (Array.isArray(meta)) {
-            products = meta;
+            products = meta as RecommendedProductDto[];
           } else if (Array.isArray(meta.products)) {
-            products = meta.products;
+            products = meta.products as RecommendedProductDto[];
           }
         }
 
