@@ -65,49 +65,50 @@ describe('AiService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('chat', () => { it('should not duplicate the latest user message in AI prompt', async () => {
-  guardrail.check.mockReturnValue(null);
-  guardrail.checkOutput.mockReturnValue(null);
+  describe('chat', () => {
+    it('should not duplicate the latest user message in AI prompt', async () => {
+      guardrail.check.mockReturnValue(null);
+      guardrail.checkOutput.mockReturnValue(null);
 
-    aiRepo.countConversationsByUser.mockResolvedValue(1);
-    aiRepo.createConversation.mockResolvedValue({
-    id: 'conv-1',
-    userId: 'user-1',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
-aiRepo.findMessagesByConversation.mockResolvedValue([
-  {
-    id: 'msg-1',
-    createdAt: new Date(),
-    conversationId: 'conv-1',
-    role: AiRole.USER,
-    content: 'hello',
-    blocked: false,
-    blockReason: null,
-    tokensUsed: 0,
-    model: '',
-    metadata: null,
-  },
-]);
+      aiRepo.countConversationsByUser.mockResolvedValue(1);
+      aiRepo.createConversation.mockResolvedValue({
+        id: 'conv-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      aiRepo.findMessagesByConversation.mockResolvedValue([
+        {
+          id: 'msg-1',
+          createdAt: new Date(),
+          conversationId: 'conv-1',
+          role: AiRole.USER,
+          content: 'hello',
+          blocked: false,
+          blockReason: null,
+          tokensUsed: 0,
+          model: '',
+          metadata: null,
+        },
+      ]);
 
-  openRouter.chat.mockResolvedValue({
-    content: 'AI response',
-    tokensUsed: 10,
-    model: 'mock-model',
-  });
+      openRouter.chat.mockResolvedValue({
+        content: 'AI response',
+        tokensUsed: 10,
+        model: 'mock-model',
+      });
 
-  await service.chat('user-1', { message: 'hello' });
+      await service.chat('user-1', { message: 'hello' });
 
-  const messages = openRouter.chat.mock.calls[0][0];
+      const messages = openRouter.chat.mock.calls[0][0];
 
-  const userMessages = messages.filter(
-    (message: { role: string; content: string }) =>
-      message.role === 'user' && message.content === 'hello',
-  );
+      const userMessages = messages.filter(
+        (message: { role: string; content: string }) =>
+          message.role === 'user' && message.content === 'hello',
+      );
 
-  expect(userMessages).toHaveLength(1);
-});
+      expect(userMessages).toHaveLength(1);
+    });
     it('should throw BadRequestException if message length > 1000', async () => {
       const longMessage = 'a'.repeat(1001);
       await expect(
@@ -295,6 +296,128 @@ Yes, ID 5 is the capsule product: "MamaBear ASI Booster 30 Kapsul - Pelancar ASI
       expect(result.data?.reply).toContain('MamaBear ASI Booster 30 Kapsul');
     });
 
+    it('should strip product ID mentions from reply while keeping product cards (VIMB-94)', async () => {
+      guardrail.check.mockReturnValue(null);
+      guardrail.checkOutput.mockReturnValue(null);
+
+      aiRepo.countConversationsByUser.mockResolvedValue(1);
+      aiRepo.createConversation.mockResolvedValue({
+        id: 'conv-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      aiRepo.findMessagesByConversation.mockResolvedValue([]);
+      aiRepo.getActiveProductsForContext.mockResolvedValue([
+        {
+          id: 3,
+          name: 'MamaBear Teh Pelancar ASI',
+          ingredients: null,
+          description: null,
+          categoryName: 'Herbal',
+          price: 50000,
+        },
+        {
+          id: 5,
+          name: 'MamaBear ASI Booster 30 Kapsul',
+          ingredients: null,
+          description: null,
+          categoryName: 'Kapsul',
+          price: 75000,
+        },
+      ]);
+      aiRepo.findProductsByIds.mockResolvedValue([
+        {
+          id: 3,
+          name: 'MamaBear Teh Pelancar ASI',
+          slug: 'mamabear-teh-pelancar-asi',
+          category: 'Herbal',
+          imageUrl: '',
+          price: 50000,
+          formattedPrice: 'Rp50.000',
+          rating: 4.8,
+          reviewCount: 120,
+          totalSold: 500,
+          shortDescription: 'Teh herbal',
+        },
+        {
+          id: 5,
+          name: 'MamaBear ASI Booster 30 Kapsul',
+          slug: 'mamabear-asi-booster-30-kapsul',
+          category: 'Kapsul',
+          imageUrl: '',
+          price: 75000,
+          formattedPrice: 'Rp75.000',
+          rating: 4.9,
+          reviewCount: 300,
+          totalSold: 1200,
+          shortDescription: 'Kapsul pelancar ASI',
+        },
+      ]);
+
+      openRouter.chat.mockResolvedValue({
+        content:
+          'Halo Ma! Kami rekomendasikan MamaBear Teh Pelancar ASI (ID 3) dan MamaBear ASI Booster 30 Kapsul (ID: 5) untuk melancarkan ASI Mama.',
+        tokensUsed: 20,
+        model: 'mock-model',
+      });
+
+      const result = await service.chat('user-1', {
+        message: 'rekomendasi pelancar ASI',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data?.reply).not.toMatch(/\(?\bID\b\s*[:#]?\s*\d+/i);
+      expect(result.data?.reply).toContain('MamaBear Teh Pelancar ASI');
+      expect(result.data?.reply).toContain('MamaBear ASI Booster 30 Kapsul');
+      // Fallback ekstraksi tanpa tag tetap menghasilkan kartu produk
+      expect(result.data?.products).toHaveLength(2);
+    });
+
+    it('should keep [PRODUCT_IDS] extraction working while removing ID text from reply (VIMB-94)', async () => {
+      guardrail.check.mockReturnValue(null);
+      guardrail.checkOutput.mockReturnValue(null);
+
+      aiRepo.countConversationsByUser.mockResolvedValue(1);
+      aiRepo.createConversation.mockResolvedValue({
+        id: 'conv-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      aiRepo.findMessagesByConversation.mockResolvedValue([]);
+      aiRepo.findProductsByIds.mockResolvedValue([
+        {
+          id: 3,
+          name: 'MamaBear Teh Pelancar ASI',
+          slug: 'mamabear-teh-pelancar-asi',
+          category: 'Herbal',
+          imageUrl: '',
+          price: 50000,
+          formattedPrice: 'Rp50.000',
+          rating: 4.8,
+          reviewCount: 120,
+          totalSold: 500,
+          shortDescription: 'Teh herbal',
+        },
+      ]);
+
+      openRouter.chat.mockResolvedValue({
+        content:
+          'Halo Ma! MamaBear Teh Pelancar ASI (ID 3) cocok untuk ASI seret.\n[PRODUCT_IDS: 3]',
+        tokensUsed: 20,
+        model: 'mock-model',
+      });
+
+      const result = await service.chat('user-1', { message: 'ASI seret' });
+
+      expect(result.success).toBe(true);
+      expect(result.data?.reply).not.toContain('[PRODUCT_IDS:');
+      expect(result.data?.reply).not.toMatch(/\(?\bID\b\s*[:#]?\s*\d+/i);
+      expect(result.data?.products).toHaveLength(1);
+      expect(result.data?.products?.[0].id).toBe(3);
+    });
+
     it('should block message and return if output guardrail fails', async () => {
       guardrail.check.mockReturnValue(null);
       guardrail.checkOutput.mockReturnValue({
@@ -380,7 +503,7 @@ Yes, ID 5 is the capsule product: "MamaBear ASI Booster 30 Kapsul - Pelancar ASI
             createdAt: new Date(),
           },
         ],
-      } as any);
+      });
 
       const result = await service.getConversationHistory('conv-1', 'user-1');
 
