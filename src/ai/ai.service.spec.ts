@@ -109,6 +109,38 @@ describe('AiService', () => {
 
       expect(userMessages).toHaveLength(1);
     });
+
+    it('should include tone-of-voice instruction in system prompt (VIMB-99)', async () => {
+      guardrail.check.mockReturnValue(null);
+      guardrail.checkOutput.mockReturnValue(null);
+
+      aiRepo.countConversationsByUser.mockResolvedValue(1);
+      aiRepo.createConversation.mockResolvedValue({
+        id: 'conv-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      aiRepo.findMessagesByConversation.mockResolvedValue([]);
+      openRouter.chat.mockResolvedValue({
+        content: 'Halo Ma!',
+        tokensUsed: 5,
+        model: 'mock-model',
+      });
+
+      await service.chat('user-1', { message: 'halo' });
+
+      const messages = openRouter.chat.mock.calls[0][0] as {
+        role: string;
+        content: string;
+      }[];
+      const systemPrompt = messages.find((m) => m.role === 'system')?.content;
+
+      expect(systemPrompt).toContain('TONE OF VOICE');
+      expect(systemPrompt).toContain('hangat');
+      expect(systemPrompt).toContain('emoji');
+    });
+
     it('should throw BadRequestException if message length > 1000', async () => {
       const longMessage = 'a'.repeat(1001);
       await expect(
