@@ -7,7 +7,10 @@ import { PinoLogger } from 'pino-nestjs';
 import { AiRepository } from './ai.repository';
 import { OpenRouterClient } from './openrouter/openrouter.client';
 import { ChatDto } from './dto/chat.dto';
-import { ChatResponseDto, RecommendedProductDto } from './dto/chat-response.dto';
+import {
+  ChatResponseDto,
+  RecommendedProductDto,
+} from './dto/chat-response.dto';
 import { AiRole } from '@/generated/prisma';
 import { ConversationSummaryDto } from './dto/conversation-summary.dto';
 import { ConversationHistoryDto } from './dto/conversation-history.dto';
@@ -31,6 +34,7 @@ const SYSTEM_PROMPT_BASE = `Kamu adalah "Mama Bear AI", asisten kesehatan resmi,
 2. Di dalam teks pesan, rekomendasikan produk secara natural dan ramah dalam 1-2 kalimat (misal: menyebutkan keunggulan produk yang relevan dengan pertanyaan Mama).
 3. Jika merekomendasikan produk dari data yang tersedia, kamu WAJIB meletakkan tag [PRODUCT_IDS: id1, id2] HANYA DI BARIS PALING BAWAH teks jawabanmu.
 4. Jika TIDAK merekomendasikan produk apapun, JANGAN cantumkan tag [PRODUCT_IDS] sama sekali.
+5. DILARANG KERAS menuliskan ID produk di dalam teks narasi balasan (contoh yang dilarang: "(ID 3)", "ID 5", "(ID: 5)"). Sebutkan NAMA produk saja secara natural. ID produk hanya boleh ditulis pada tag [PRODUCT_IDS: id1, id2] di baris paling bawah.
 
 # CONTOH OUTPUT YANG BENAR:
 "Halo Ma! Untuk bentuk kapsul praktis pelancar ASI tanpa rasa herba yang kuat, Mama Bear sangat merekomendasikan MamaBear ASI Booster Kapsul. Kandungan daun katuk dan kelor di dalamnya efektif membantu meningkatkan produksi dan nutrisi ASI Mama. Tetap penuhi asupan cairan ya, Ma!
@@ -73,7 +77,8 @@ ${productList}
 
 PENTING:
 1. Rekomendasikan HANYA produk dari daftar di atas yang relevan dengan kebutuhan Mama.
-2. JANGAN salin atau ketik ulang daftar produk di atas ke dalam jawabanmu. Cukup rekomendasikan dengan menyebutkan nama produk dan cantumkan tag [PRODUCT_IDS: id] di baris paling bawah.`;
+2. JANGAN salin atau ketik ulang daftar produk di atas ke dalam jawabanmu. Cukup rekomendasikan dengan menyebutkan nama produk dan cantumkan tag [PRODUCT_IDS: id] di baris paling bawah.
+3. JANGAN tulis ID produk (misal "ID 3" atau "(ID 3)") di dalam teks jawaban; ID hanya untuk tag [PRODUCT_IDS].`;
 }
 
 function sanitizeAiReply(
@@ -111,8 +116,13 @@ function sanitizeAiReply(
 
   // 3. Hapus sisa format daftar ID jika LLM menuliskan "- ID 1: ..." atau "ID 1: ..." di dalam teks
   cleaned = cleaned
-    .replace(/^[-\s*]*ID\s*\d+:.*$/gmi, '')
-    .replace(/^[-\s*]*ID\s*$/gmi, '')
+    .replace(/^[-\s*]*ID\s*\d+:.*$/gim, '')
+    .replace(/^[-\s*]*ID\s*$/gim, '')
+    // 4. Defense-in-depth: buang penyebutan ID produk di tengah narasi
+    //    (tag [PRODUCT_IDS] sudah diekstrak sebelum fungsi ini dipanggil)
+    .replace(/\s*\((?:ID|id)\s*[:#]?\s*\d+\)/g, '')
+    .replace(/\b(?:ID|id)\s*[:#]?\s*\d+\b/g, '')
+    .replace(/[^\S\n]{2,}/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
@@ -455,12 +465,12 @@ export class AiService {
       updatedAt: conversation.updatedAt,
       messages: conversation.messages.map((msg) => {
         let products: RecommendedProductDto[] = [];
-        if (msg.metadata) {
-          const meta = msg.metadata as any;
+        if (msg.metadata && typeof msg.metadata === 'object') {
+          const meta = msg.metadata as Record<string, unknown>;
           if (Array.isArray(meta)) {
-            products = meta;
+            products = meta as RecommendedProductDto[];
           } else if (Array.isArray(meta.products)) {
-            products = meta.products;
+            products = meta.products as RecommendedProductDto[];
           }
         }
 
