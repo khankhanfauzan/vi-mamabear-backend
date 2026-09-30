@@ -10,6 +10,19 @@ export interface OpenRouterChatResult {
 /** HTTP status codes that warrant a retry on the fallback model. */
 const RETRYABLE_STATUS_CODES = new Set([429, 502, 503]);
 
+/** Error carrying the originating HTTP status (attached by fetchModel). */
+interface HttpStatusError extends Error {
+  httpStatus?: number;
+}
+
+function getHttpStatus(error: unknown): number | undefined {
+  if (typeof error === 'object' && error !== null && 'httpStatus' in error) {
+    const status = (error as HttpStatusError).httpStatus;
+    return typeof status === 'number' ? status : undefined;
+  }
+  return undefined;
+}
+
 @Injectable()
 export class OpenRouterClient {
   private readonly baseUrl: string;
@@ -111,7 +124,7 @@ export class OpenRouterClient {
 
         const err = new BadGatewayException(msg);
         // Attach the HTTP status so the retry logic can inspect it
-        (err as any).httpStatus = response.status;
+        (err as HttpStatusError).httpStatus = response.status;
         throw err;
       }
 
@@ -145,18 +158,15 @@ export class OpenRouterClient {
       return true;
     }
     // HTTP status-based errors (attached by fetchModel)
-    const httpStatus = (error as any)?.httpStatus;
-    if (
-      typeof httpStatus === 'number' &&
-      RETRYABLE_STATUS_CODES.has(httpStatus)
-    ) {
+    const httpStatus = getHttpStatus(error);
+    if (httpStatus !== undefined && RETRYABLE_STATUS_CODES.has(httpStatus)) {
       return true;
     }
     // Network failures (fetch rejected entirely)
     if (
       error instanceof Error &&
       !(error instanceof BadGatewayException) &&
-      !('httpStatus' in (error as any))
+      getHttpStatus(error) === undefined
     ) {
       return true;
     }
@@ -173,8 +183,8 @@ export class OpenRouterClient {
     ) {
       return 'timeout';
     }
-    const httpStatus = (error as any)?.httpStatus;
-    if (typeof httpStatus === 'number') {
+    const httpStatus = getHttpStatus(error);
+    if (httpStatus !== undefined) {
       return `HTTP ${httpStatus}`;
     }
     return 'network_error';

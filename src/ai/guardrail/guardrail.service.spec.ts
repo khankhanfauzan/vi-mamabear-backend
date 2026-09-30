@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GuardrailService } from './guardrail.service';
 import { BLOCK_REASONS } from './blocked-keywords';
+import { GUARDRAIL_MESSAGES, pickHumanizedMessage } from './guardrail-messages';
 
 describe('GuardrailService', () => {
   let service: GuardrailService;
@@ -145,6 +146,45 @@ describe('GuardrailService', () => {
         const result = service.checkOutput(output);
         expect(result).toBeNull();
       });
+    });
+  });
+
+  describe('Humanized messages (VIMB-99)', () => {
+    it('should provide at least 2 variations per guardrail category', () => {
+      Object.values(GUARDRAIL_MESSAGES).forEach((options) => {
+        expect(options.length).toBeGreaterThanOrEqual(2);
+      });
+    });
+
+    it('should never return an empty message for any block reason', () => {
+      Object.values(BLOCK_REASONS).forEach((reason) => {
+        const message = pickHumanizedMessage(reason);
+        expect(message.trim().length).toBeGreaterThan(0);
+      });
+    });
+
+    it('should return a non-template humanized message on blocked input', () => {
+      const result = service.check(
+        'Anak saya kejang-kejang dan tidak sadarkan diri.',
+      );
+
+      expect(result).not.toBeNull();
+      expect(result?.responseMessage).toBeTruthy();
+      // Sapaan hangat khas MamaBear, bukan bahasa robotik
+      expect(result?.responseMessage).toMatch(/\bMa\b|Mama/);
+      expect(result?.responseMessage).not.toMatch(
+        /Mohon maaf atas ketidaknyamanannya|Sistem kami tidak dapat/i,
+      );
+    });
+
+    it('should return a non-template humanized message on blocked output', () => {
+      const result = service.checkOutput(
+        'Diagnosis Anda adalah diabetes gestasional.',
+      );
+
+      expect(result).not.toBeNull();
+      expect(result?.responseMessage).toBeTruthy();
+      expect(result?.responseMessage).toMatch(/\bMa\b|Mama/);
     });
   });
 });

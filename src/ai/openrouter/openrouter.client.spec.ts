@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OpenRouterClient } from './openrouter.client';
 import { BadGatewayException } from '@nestjs/common';
+import { PinoLogger } from 'pino-nestjs';
 
 describe('OpenRouterClient', () => {
   let client: OpenRouterClient;
@@ -13,7 +14,18 @@ describe('OpenRouterClient', () => {
     process.env.OPENROUTER_TIMEOUT_MS = '5000';
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [OpenRouterClient],
+      providers: [
+        OpenRouterClient,
+        {
+          provide: PinoLogger,
+          useValue: {
+            setContext: jest.fn(),
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     client = module.get<OpenRouterClient>(OpenRouterClient);

@@ -29,6 +29,14 @@ const SYSTEM_PROMPT_BASE = `Kamu adalah "Mama Bear AI", asisten kesehatan resmi,
 3. Jawablah dengan ringkas dan to the point (maksimal 3-4 kalimat).
 4. DILARANG KERAS menampilkan proses berpikir, analisis internal, atau catatan evaluasi (contoh dilarang: "The user is asking...", "I need to check...", "Looking at the data...", "In conclusion..."). Balasanmu harus LANGSUNG berupa pesan ramah kepada Mama.
 
+# GAYA BAHASA (TONE OF VOICE) - WAJIB:
+- Gunakan bahasa Indonesia yang hangat, sopan, dan suportif — seperti teman yang paham dunia parenting.
+- Sapa user dengan "Mama"/"Ma" secara natural, jangan berlebihan.
+- Hindari kalimat template/formal kaku seperti "Mohon maaf atas ketidaknyamanannya" atau "Sistem kami tidak dapat memproses permintaan Anda".
+- Boleh pakai emoji secukupnya (maksimal 1-2 per pesan) untuk kesan hangat, jangan berlebihan.
+- Jangan terdengar seperti membaca script; variasikan kalimat pembuka antar respons.
+- Jika menolak permintaan, tetap ramah dan tawarkan bantuan alternatif, jangan menolak dengan dingin.
+
 # ATURAN REKOMENDASI PRODUK (SANGAT PENTING):
 1. DILARANG menuliskan daftar/list produk mentah, daftar ID produk, atau spesifikasi panjang di dalam teks pesan (karena kartu produk interaktif akan dimunculkan otomatis oleh sistem dari data produk).
 2. Di dalam teks pesan, rekomendasikan produk secara natural dan ramah dalam 1-2 kalimat (misal: menyebutkan keunggulan produk yang relevan dengan pertanyaan Mama).
@@ -82,7 +90,8 @@ ${productList}
 
 PENTING:
 1. Rekomendasikan HANYA produk dari daftar di atas yang relevan dengan kebutuhan Mama.
-2. JANGAN salin atau ketik ulang daftar produk di atas ke dalam jawabanmu. Cukup rekomendasikan dengan menyebutkan nama produk dan cantumkan tag [PRODUCT_IDS: id] di baris paling bawah.`;
+2. JANGAN salin atau ketik ulang daftar produk di atas ke dalam jawabanmu. Cukup rekomendasikan dengan menyebutkan nama produk dan cantumkan tag [PRODUCT_IDS: id] di baris paling bawah.
+3. JANGAN tulis ID produk (misal "ID 3" atau "(ID 3)") di dalam teks jawaban; ID hanya untuk tag [PRODUCT_IDS].`;
 }
 
 function sanitizeAiReply(
@@ -122,6 +131,11 @@ function sanitizeAiReply(
   cleaned = cleaned
     .replace(/^[-\s*]*ID\s*\d+:.*$/gim, '')
     .replace(/^[-\s*]*ID\s*$/gim, '')
+    // 4. Defense-in-depth: buang penyebutan ID produk di tengah narasi
+    //    (tag [PRODUCT_IDS] sudah diekstrak sebelum fungsi ini dipanggil)
+    .replace(/\s*\((?:ID|id)\s*[:#]?\s*\d+\)/g, '')
+    .replace(/\b(?:ID|id)\s*[:#]?\s*\d+\b/g, '')
+    .replace(/[^\S\n]{2,}/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
@@ -464,17 +478,11 @@ export class AiService {
       updatedAt: conversation.updatedAt,
       messages: conversation.messages.map((msg) => {
         let products: RecommendedProductDto[] = [];
-        if (msg.metadata) {
-          const meta: unknown = msg.metadata;
-
+        if (msg.metadata && typeof msg.metadata === 'object') {
+          const meta = msg.metadata as Record<string, unknown>;
           if (Array.isArray(meta)) {
             products = meta as RecommendedProductDto[];
-          } else if (
-            typeof meta === 'object' &&
-            meta !== null &&
-            'products' in meta &&
-            Array.isArray(meta.products)
-          ) {
+          } else if (Array.isArray(meta.products)) {
             products = meta.products as RecommendedProductDto[];
           }
         }

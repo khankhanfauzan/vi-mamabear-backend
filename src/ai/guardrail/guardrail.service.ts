@@ -8,6 +8,7 @@ import {
   OUTPUT_MEDICAL_DIAGNOSIS_KEYWORDS,
   OUTPUT_PRESCRIPTION_KEYWORDS,
 } from './blocked-keywords';
+import { pickHumanizedMessage } from './guardrail-messages';
 
 export interface GuardrailResult {
   blockReason: BlockReason;
@@ -29,25 +30,18 @@ export class GuardrailService {
   private readonly rules: Array<{
     patterns: RegExp[];
     blockReason: BlockReason;
-    responseMessage: string;
   }> = [
     {
       patterns: EMERGENCY_MEDICAL_KEYWORDS,
       blockReason: BLOCK_REASONS.EMERGENCY,
-      responseMessage:
-        'Kondisi ini mengindikasikan darurat medis, segera hubungi dokter/IGD terdekat atau WhatsApp MamaBear (628888695757).',
     },
     {
       patterns: PRESCRIPTION_KEYWORDS,
       blockReason: BLOCK_REASONS.PRESCRIPTION,
-      responseMessage:
-        'Saya tidak dapat memberikan resep atau rekomendasi dosis obat. Silakan konsultasikan langsung dengan dokter atau apoteker Anda.',
     },
     {
       patterns: OUT_OF_SCOPE_KEYWORDS,
       blockReason: BLOCK_REASONS.OUT_OF_SCOPE,
-      responseMessage:
-        'Maaf, saya hanya bisa membantu pertanyaan seputar kesehatan ibu hamil, menyusui, dan perawatan bayi. Untuk pertanyaan lain, silakan hubungi customer service kami.',
     },
   ];
 
@@ -68,7 +62,7 @@ export class GuardrailService {
       if (matched) {
         return {
           blockReason: rule.blockReason,
-          responseMessage: rule.responseMessage,
+          responseMessage: pickHumanizedMessage(rule.blockReason),
         };
       }
     }
@@ -92,8 +86,7 @@ export class GuardrailService {
     if (diagnosisMatched) {
       return {
         blockReason: BLOCK_REASONS.MEDICAL_DIAGNOSIS,
-        responseMessage:
-          'Maaf, saya tidak dapat memberikan diagnosis medis. Silakan konsultasikan kondisi Anda dengan dokter atau hubungi WhatsApp MamaBear (628888695757).',
+        responseMessage: pickHumanizedMessage(BLOCK_REASONS.MEDICAL_DIAGNOSIS),
       };
     }
 
@@ -104,8 +97,9 @@ export class GuardrailService {
     if (prescriptionMatched) {
       return {
         blockReason: BLOCK_REASONS.SPECIFIC_PRESCRIPTION,
-        responseMessage:
-          'Maaf, saya tidak dapat merekomendasikan obat atau dosis spesifik. Silakan konsultasikan dengan dokter Anda atau hubungi WhatsApp MamaBear (628888695757).',
+        responseMessage: pickHumanizedMessage(
+          BLOCK_REASONS.SPECIFIC_PRESCRIPTION,
+        ),
       };
     }
 
