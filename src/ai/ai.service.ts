@@ -7,7 +7,10 @@ import { PinoLogger } from 'pino-nestjs';
 import { AiRepository } from './ai.repository';
 import { OpenRouterClient } from './openrouter/openrouter.client';
 import { ChatDto } from './dto/chat.dto';
-import { ChatResponseDto, RecommendedProductDto } from './dto/chat-response.dto';
+import {
+  ChatResponseDto,
+  RecommendedProductDto,
+} from './dto/chat-response.dto';
 import { AiRole } from '@/generated/prisma';
 import { ConversationSummaryDto } from './dto/conversation-summary.dto';
 import { ConversationHistoryDto } from './dto/conversation-history.dto';
@@ -31,6 +34,12 @@ const SYSTEM_PROMPT_BASE = `Kamu adalah "Mama Bear AI", asisten kesehatan resmi,
 2. Di dalam teks pesan, rekomendasikan produk secara natural dan ramah dalam 1-2 kalimat (misal: menyebutkan keunggulan produk yang relevan dengan pertanyaan Mama).
 3. Jika merekomendasikan produk dari data yang tersedia, kamu WAJIB meletakkan tag [PRODUCT_IDS: id1, id2] HANYA DI BARIS PALING BAWAH teks jawabanmu.
 4. Jika TIDAK merekomendasikan produk apapun, JANGAN cantumkan tag [PRODUCT_IDS] sama sekali.
+# SCOPE EDUKASI KESEHATAN (WAJIB):
+5. Pertanyaan edukasi umum tentang kesehatan ibu hamil, menyusui, dan bayi tetap berada dalam scope MamaBear.
+6. Topik menyusui seperti kelancaran ASI, produksi ASI, pumping, pelekatan menyusui, nutrisi ibu menyusui, dan perawatan bayi BOLEH dan WAJIB dijawab secara edukatif, suportif, dan aman.
+7. Jangan menolak pertanyaan edukasi ASI hanya karena pengguna tidak secara langsung menanyakan produk.
+8. Untuk pertanyaan edukasi yang relevan dengan produk MamaBear, jawab edukasinya terlebih dahulu. Setelah itu, jika ada produk yang benar-benar relevan dari DATA_PRODUK_AKTIF, tawarkan secara natural dan tidak memaksa.
+9. Jika tidak ada produk yang relevan, cukup berikan jawaban edukasi tanpa memaksakan rekomendasi produk.
 
 # CONTOH OUTPUT YANG BENAR:
 "Halo Ma! Untuk bentuk kapsul praktis pelancar ASI tanpa rasa herba yang kuat, Mama Bear sangat merekomendasikan MamaBear ASI Booster Kapsul. Kandungan daun katuk dan kelor di dalamnya efektif membantu meningkatkan produksi dan nutrisi ASI Mama. Tetap penuhi asupan cairan ya, Ma!
@@ -111,8 +120,8 @@ function sanitizeAiReply(
 
   // 3. Hapus sisa format daftar ID jika LLM menuliskan "- ID 1: ..." atau "ID 1: ..." di dalam teks
   cleaned = cleaned
-    .replace(/^[-\s*]*ID\s*\d+:.*$/gmi, '')
-    .replace(/^[-\s*]*ID\s*$/gmi, '')
+    .replace(/^[-\s*]*ID\s*\d+:.*$/gim, '')
+    .replace(/^[-\s*]*ID\s*$/gim, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
@@ -456,11 +465,17 @@ export class AiService {
       messages: conversation.messages.map((msg) => {
         let products: RecommendedProductDto[] = [];
         if (msg.metadata) {
-          const meta = msg.metadata as any;
+          const meta: unknown = msg.metadata;
+
           if (Array.isArray(meta)) {
-            products = meta;
-          } else if (Array.isArray(meta.products)) {
-            products = meta.products;
+            products = meta as RecommendedProductDto[];
+          } else if (
+            typeof meta === 'object' &&
+            meta !== null &&
+            'products' in meta &&
+            Array.isArray(meta.products)
+          ) {
+            products = meta.products as RecommendedProductDto[];
           }
         }
 

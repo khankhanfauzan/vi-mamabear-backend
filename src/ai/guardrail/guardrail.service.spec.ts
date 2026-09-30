@@ -76,6 +76,11 @@ describe('GuardrailService', () => {
       const safeInputs = [
         'Bagaimana cara membedakan tangisan bayi lapar dan ngantuk?',
         'Apa saja makanan sehat untuk ibu menyusui?',
+        'Kenapa ASI saya sedikit?',
+        'Gimana cara memperbanyak ASI?',
+        'Bagaimana cara meningkatkan produksi ASI?',
+        'ASI saya seret, apa yang harus saya lakukan?',
+        'Bagaimana agar ASI lebih lancar saat menyusui?',
         'Berapa jam tidur yang ideal untuk bayi usia 1 bulan?',
         'Cara mengatasi puting lecet saat menyusui.',
         'Senam hamil yang aman di trimester kedua.',

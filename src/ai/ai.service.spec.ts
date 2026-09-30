@@ -65,49 +65,50 @@ describe('AiService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('chat', () => { it('should not duplicate the latest user message in AI prompt', async () => {
-  guardrail.check.mockReturnValue(null);
-  guardrail.checkOutput.mockReturnValue(null);
+  describe('chat', () => {
+    it('should not duplicate the latest user message in AI prompt', async () => {
+      guardrail.check.mockReturnValue(null);
+      guardrail.checkOutput.mockReturnValue(null);
 
-    aiRepo.countConversationsByUser.mockResolvedValue(1);
-    aiRepo.createConversation.mockResolvedValue({
-    id: 'conv-1',
-    userId: 'user-1',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
-aiRepo.findMessagesByConversation.mockResolvedValue([
-  {
-    id: 'msg-1',
-    createdAt: new Date(),
-    conversationId: 'conv-1',
-    role: AiRole.USER,
-    content: 'hello',
-    blocked: false,
-    blockReason: null,
-    tokensUsed: 0,
-    model: '',
-    metadata: null,
-  },
-]);
+      aiRepo.countConversationsByUser.mockResolvedValue(1);
+      aiRepo.createConversation.mockResolvedValue({
+        id: 'conv-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      aiRepo.findMessagesByConversation.mockResolvedValue([
+        {
+          id: 'msg-1',
+          createdAt: new Date(),
+          conversationId: 'conv-1',
+          role: AiRole.USER,
+          content: 'hello',
+          blocked: false,
+          blockReason: null,
+          tokensUsed: 0,
+          model: '',
+          metadata: null,
+        },
+      ]);
 
-  openRouter.chat.mockResolvedValue({
-    content: 'AI response',
-    tokensUsed: 10,
-    model: 'mock-model',
-  });
+      openRouter.chat.mockResolvedValue({
+        content: 'AI response',
+        tokensUsed: 10,
+        model: 'mock-model',
+      });
 
-  await service.chat('user-1', { message: 'hello' });
+      await service.chat('user-1', { message: 'hello' });
 
-  const messages = openRouter.chat.mock.calls[0][0];
+      const messages = openRouter.chat.mock.calls[0][0];
 
-  const userMessages = messages.filter(
-    (message: { role: string; content: string }) =>
-      message.role === 'user' && message.content === 'hello',
-  );
+      const userMessages = messages.filter(
+        (message: { role: string; content: string }) =>
+          message.role === 'user' && message.content === 'hello',
+      );
 
-  expect(userMessages).toHaveLength(1);
-});
+      expect(userMessages).toHaveLength(1);
+    });
     it('should throw BadRequestException if message length > 1000', async () => {
       const longMessage = 'a'.repeat(1001);
       await expect(
@@ -364,7 +365,6 @@ Yes, ID 5 is the capsule product: "MamaBear ASI Booster 30 Kapsul - Pelancar ASI
             blockReason: null,
             tokensUsed: 0,
             model: 'user',
-            metadata: null,
             createdAt: new Date(),
           },
           {
