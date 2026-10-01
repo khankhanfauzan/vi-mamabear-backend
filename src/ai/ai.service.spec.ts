@@ -519,7 +519,6 @@ Yes, ID 5 is the capsule product: "MamaBear ASI Booster 30 Kapsul - Pelancar ASI
             blockReason: null,
             tokensUsed: 0,
             model: 'user',
-            metadata: null,
             createdAt: new Date(),
           },
           {
