@@ -63,5 +63,12 @@ export class ChatResponseDto {
     products: RecommendedProductDto[];
     blocked: boolean;
     blockReason?: string;
+    /**
+     * Menunjukkan jenis respons AI:
+     * - 'clarification': AI menilai pesan ambigu dan mengembalikan pertanyaan follow-up.
+     * - 'answer': AI menjawab langsung (termasuk rekomendasi produk atau edukasi).
+     * - undefined: respons lama sebelum fitur ini ditambahkan (treat as 'answer').
+     */
+    type?: 'clarification' | 'answer';
   };
 }

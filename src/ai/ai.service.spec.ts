@@ -488,6 +488,108 @@ Yes, ID 5 is the capsule product: "MamaBear ASI Booster 30 Kapsul - Pelancar ASI
     });
   });
 
+  describe('clarification detection', () => {
+    const setupMocks = () => {
+      guardrail.check.mockReturnValue(null);
+      guardrail.checkOutput.mockReturnValue(null);
+      aiRepo.countConversationsByUser.mockResolvedValue(1);
+      aiRepo.createConversation.mockResolvedValue({
+        id: 'conv-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      aiRepo.findMessagesByConversation.mockResolvedValue([]);
+    };
+
+    it('should return type=clarification when LLM responds with [CLARIFY] prefix', async () => {
+      setupMocks();
+      openRouter.chat.mockResolvedValue({
+        content:
+          '[CLARIFY] Boleh cerita dulu, Ma, lagi cari produk untuk kebutuhan apa? Misalnya pelancar ASI, nutrisi kehamilan, atau camilan sehat? 😊',
+        tokensUsed: 15,
+        model: 'mock-model',
+      });
+
+      const result = await service.chat('user-1', {
+        message: 'ada produk apa aja?',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data?.type).toBe('clarification');
+    });
+
+    it('should strip [CLARIFY] prefix completely from reply text', async () => {
+      setupMocks();
+      openRouter.chat.mockResolvedValue({
+        content: '[CLARIFY] Kebutuhannya lebih ke menyusui atau nutrisi, Ma?',
+        tokensUsed: 10,
+        model: 'mock-model',
+      });
+
+      const result = await service.chat('user-1', { message: 'rekomendasiin dong' });
+
+      expect(result.data?.reply).not.toMatch(/^\[CLARIFY\]/);
+      expect(result.data?.reply).toContain('Kebutuhannya');
+    });
+
+    it('should return empty products and skip findProductsByIds when clarification', async () => {
+      setupMocks();
+      openRouter.chat.mockResolvedValue({
+        content: '[CLARIFY] Untuk usia berapa bulan, Ma?',
+        tokensUsed: 10,
+        model: 'mock-model',
+      });
+
+      const result = await service.chat('user-1', { message: 'produk buat bayi' });
+
+      expect(result.data?.products).toHaveLength(0);
+      expect(aiRepo.findProductsByIds).not.toHaveBeenCalled();
+    });
+
+    it('should return type=answer for a specific non-ambiguous product query', async () => {
+      setupMocks();
+      openRouter.chat.mockResolvedValue({
+        content: 'Halo Ma! Tersedia pompa ASI elektrik dari MamaBear.',
+        tokensUsed: 10,
+        model: 'mock-model',
+      });
+
+      const result = await service.chat('user-1', {
+        message: 'ada pompa ASI elektrik ga?',
+      });
+
+      expect(result.data?.type).toBe('answer');
+    });
+
+    it('should respect output guardrail before clarification shortcut — blocked response wins', async () => {
+      guardrail.check.mockReturnValue(null);
+      guardrail.checkOutput.mockReturnValue({
+        blockReason: 'MEDICAL_DIAGNOSIS',
+        responseMessage: 'Blocked by output guardrail',
+      });
+      aiRepo.countConversationsByUser.mockResolvedValue(1);
+      aiRepo.createConversation.mockResolvedValue({
+        id: 'conv-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      aiRepo.findMessagesByConversation.mockResolvedValue([]);
+      openRouter.chat.mockResolvedValue({
+        content: '[CLARIFY] Boleh tau usianya berapa, Ma?',
+        tokensUsed: 5,
+        model: 'mock-model',
+      });
+
+      const result = await service.chat('user-1', { message: 'produk apa aja' });
+
+      // Output guardrail lebih prioritas dari clarification detection
+      expect(result.success).toBe(false);
+      expect(result.message).toBe('Blocked by output guardrail');
+    });
+  });
+
   describe('getConversationHistory', () => {
     it('should return conversation history including recommended products from metadata', async () => {
       const mockProduct = {
@@ -519,6 +621,7 @@ Yes, ID 5 is the capsule product: "MamaBear ASI Booster 30 Kapsul - Pelancar ASI
             blockReason: null,
             tokensUsed: 0,
             model: 'user',
+            metadata: null,
             createdAt: new Date(),
           },
           {
