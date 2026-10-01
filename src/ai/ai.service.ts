@@ -15,6 +15,7 @@ import { AiRole } from '@/generated/prisma';
 import { ConversationSummaryDto } from './dto/conversation-summary.dto';
 import { ConversationHistoryDto } from './dto/conversation-history.dto';
 import { GuardrailService } from './guardrail/guardrail.service';
+import { ProductScopeGuardrailService } from './guardrail/product-scope-guardrail.service';
 
 const MAX_INPUT_LENGTH = 1000;
 const MAX_CONVERSATIONS_PER_USER = 50;
@@ -217,6 +218,7 @@ export class AiService {
     private readonly openRouter: OpenRouterClient,
     private readonly logger: PinoLogger,
     private readonly guardrail: GuardrailService,
+    private readonly productGuardrail: ProductScopeGuardrailService,
   ) {
     this.logger.setContext(AiService.name);
   }
@@ -229,7 +231,9 @@ export class AiService {
     }
 
     // ── Guardrail check ──────────────────────────────────────────────
-    const guardrailResult = this.guardrail.check(dto.message);
+    const guardrailResult =
+      this.guardrail.check(dto.message) ??
+      (await this.productGuardrail.check(dto.message));
 
     if (guardrailResult) {
       this.logger.warn(
@@ -413,7 +417,10 @@ export class AiService {
     const isClarification = CLARIFY_PREFIX_REGEX.test(finalContent.trim());
 
     if (isClarification) {
-      finalContent = finalContent.trim().replace(CLARIFY_PREFIX_REGEX, '').trim();
+      finalContent = finalContent
+        .trim()
+        .replace(CLARIFY_PREFIX_REGEX, '')
+        .trim();
 
       await this.aiRepo.createMessage({
         conversationId,
@@ -559,11 +566,11 @@ export class AiService {
       updatedAt: conv.updatedAt,
       lastMessage: conv.messages[0]
         ? {
-          id: conv.messages[0].id,
-          role: conv.messages[0].role,
-          content: conv.messages[0].content,
-          createdAt: conv.messages[0].createdAt,
-        }
+            id: conv.messages[0].id,
+            role: conv.messages[0].role,
+            content: conv.messages[0].content,
+            createdAt: conv.messages[0].createdAt,
+          }
         : null,
     }));
   }
