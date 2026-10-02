@@ -4,6 +4,14 @@
  * Kunci mengikuti nilai BLOCK_REASONS.
  */
 export const GUARDRAIL_MESSAGES = {
+  PRODUCT_OUT_OF_SCOPE: [
+    'Aku belum menemukan produk yang Mama cari di katalog MamaBear ya, Ma 🙏 Mau aku bantu lihat produk lain yang tersedia di katalog sesuai kebutuhan Mama?',
+    'Untuk produk yang Mama tanyakan, aku belum menemukan pilihan yang sesuai di katalog kita, Ma. Boleh cerita kebutuhan Mama? Aku siap bantu cari alternatif dari produk yang tersedia 😊',
+  ],
+  PRODUCT_CATALOG_UNAVAILABLE: [
+    'Aku belum bisa memastikan produk itu di katalog saat ini ya, Ma 🙏 Coba tanyakan lagi sebentar, atau aku bantu informasi seputar kebutuhan Mama dulu?',
+    'Katalog kita belum bisa aku cek sekarang, Ma. Mama bisa coba lagi sebentar ya. Sambil menunggu, aku siap bantu informasi seputar menyusui atau kebutuhan si kecil 😊',
+  ],
   EMERGENCY_MEDICAL_QUERY: [
     'Waduh, ini sepertinya darurat ya, Ma 🙏 Cepat hubungi dokter/IGD terdekat atau WhatsApp MamaBear di 628888695757 agar segera ditangani, ya.',
     'Kayaknya perlu penanganan segera nih, Ma. Tolong langsung hubungi dokter/IGD terdekat atau WhatsApp MamaBear (628888695757) sekarang juga ya 🙏',
