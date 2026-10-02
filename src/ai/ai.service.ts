@@ -709,15 +709,17 @@ export class AiService {
 
   private buildPrompt(
     systemPrompt: string,
-    history: { role: AiRole; content: string }[],
+    history: { role: AiRole; content: string; blocked?: boolean }[],
   ) {
     const messages: {
       role: 'user' | 'assistant' | 'system';
       content: string;
     }[] = [{ role: 'system', content: systemPrompt }];
 
-    const recentHistory = history.slice(-10);
-    for (const msg of recentHistory) {
+    // Filter out blocked messages before slicing, so we get 10 actual safe messages
+    const safeHistory = history.filter((msg) => !msg.blocked).slice(-10);
+    
+    for (const msg of safeHistory) {
       if (msg.role === AiRole.USER) {
         messages.push({ role: 'user', content: msg.content });
       } else if (msg.role === AiRole.ASSISTANT) {
