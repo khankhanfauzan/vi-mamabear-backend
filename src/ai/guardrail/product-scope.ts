@@ -1,3 +1,14 @@
+/**
+ * Health education keyword whitelist — if a message contains a health symptom/condition
+ * AND a maternal/neonatal context word, it is an educational question, not a product query.
+ * Covers common typos (e.g. "pendaraah").
+ */
+const HEALTH_SYMPTOM_KEYWORDS =
+  /\b(?:pendarahan|perdarahan|pendaraah|kontraksi|mual|muntah|demam|sakit|nyeri|gatal|bengkak|pusing|lemas|kram|flek|darah|keguguran|operasi|cesar|caesar|infeksi|alergi|ruam|diare|sembelit|batuk|pilek|flu|normal|bahaya|aman|risiko|berbahaya|tanda|gejala|penyebab|kenapa|mengapa)\b/;
+
+const MATERNAL_CONTEXT_KEYWORDS =
+  /\b(?:hamil|kehamilan|trimester|menyusui|busui|bayi|janin|anak|melahirkan|persalinan|nifas|postpartum|asi|kandungan|rahim|kontrol|usg|bumil|busui|lahir)\b/;
+
 /** Strip shopping language before embedding: embedding the entire chat dilutes identity. */
 export function extractProductQueries(message: string): string[] {
   const text = message.toLowerCase().trim();
@@ -6,13 +17,47 @@ export function extractProductQueries(message: string): string[] {
       text,
     );
   if (!intent) return [];
-  // Broad catalog requests and educational questions should still reach the LLM.
+
+  // ── Health education whitelist (Bug #4 fix) ──────────────────────────────
+  // Messages that contain a health/symptom keyword AND a maternal/neonatal
+  // context word are educational questions, NOT product queries — even if they
+  // happen to contain "ada", "cari", etc.
+  // Example: "kalau ada pendaraah di trimester 3 itu normal apa ngga?" →  []
+  if (HEALTH_SYMPTOM_KEYWORDS.test(text) && MATERNAL_CONTEXT_KEYWORDS.test(text)) {
+    return [];
+  }
+
+  // ── Educational bypass (widened from start-of-string to anywhere) ────────
+  // Users often prefix messages with greetings ("min", "kak", "ma") before
+  // the actual question, so we cannot anchor these patterns to ^ only.
   if (
-    /^(?:bagaimana|gimana|kenapa|mengapa|cara|tips)\b/.test(text) ||
-    /^ada\s+(?:cara|tips|saran)\b/.test(text) ||
-    /^apa\s+(?:penyebab|risiko)\b/.test(text)
+    /\b(?:bagaimana|gimana|kenapa|mengapa|cara|tips)\b/.test(text) ||
+    /\bada\s+(?:cara|tips|saran)\b/.test(text) ||
+    /\b(?:apa|apakah)\s+(?:penyebab|risiko|tanda|gejala|normal|aman|bahaya)\b/.test(text) ||
+    /\b(?:normal|aman|bahaya|berbahaya)\s*(?:ga|gak|nggak|ngga|tidak|kah)?\b/.test(text)
   )
     return [];
+
+  // ── "ada"-only intent guard ──────────────────────────────────────────────
+  // "ada" in Indonesian has two meanings:
+  //   (a) shopping: "ada produk pompa ASI?" → product query ✅
+  //   (b) existential: "kalau ada pendarahan" → "if bleeding occurs" ❌
+  // Only treat "ada" as product intent when paired with explicit shopping context.
+  const hasOtherShoppingIntent =
+    /\b(?:jual|menjual|sedia|tersedia|stok|stock|ready|beli|membeli|harga|cari|mencari|punya)\b/.test(
+      text,
+    );
+  if (!hasOtherShoppingIntent) {
+    // "ada" is the sole intent signal — require explicit product/shopping context
+    const hasProductShoppingContext =
+      /\bada\s+(?:produk|barang|item|stok|stock|varian|variant|ukuran|rasa|promo|diskon)\b/.test(
+        text,
+      ) ||
+      /\bada\b.*\b(?:di\s*(?:mamabear|mama\s*bear|sini|katalog|toko)|harganya|stoknya)\b/.test(
+        text,
+      );
+    if (!hasProductShoppingContext) return [];
+  }
   let query = text
     .replace(
       /^(?:(?:halo|hai|min|admin|ma|mama|kak|apakah|berapa|mau|ingin|aku|saya|tolong)\s+)*(?:jual|menjual|beli|membeli|harga|cari|mencari|punya|ada)\b\s*/,

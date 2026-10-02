@@ -183,4 +183,32 @@ describe('ProductScopeGuardrailService', () => {
       extractProductQueries('MamaBear ASI Booster 30 Kapsul ada stoknya ga?'),
     ).toEqual(['mamabear asi booster 30 kapsul']);
   });
+
+  describe('VIMB-98: Health education false-positive fix (Bug #4)', () => {
+    it('should NOT extract product query from "min kalau ada pendaraah di trimester 3 itu normal apa ngga?"', () => {
+      const result = extractProductQueries(
+        'min kalau ada pendaraah di trimester 3 itu normal apa ngga?',
+      );
+      expect(result).toEqual([]);
+    });
+
+    it('should NOT extract product query from "ada pendarahan di trimester 3 normal ga?"', () => {
+      const result = extractProductQueries(
+        'ada pendarahan di trimester 3 normal ga?',
+      );
+      expect(result).toEqual([]);
+    });
+
+    it('should NOT extract product query from "kak kalau ada kontraksi di bulan 7 bahaya ga?"', () => {
+      const result = extractProductQueries(
+        'kak kalau ada kontraksi di bulan 7 bahaya ga?',
+      );
+      expect(result).toEqual([]);
+    });
+
+    it('should STILL extract product query from "ada produk pompa ASI elektrik?"', () => {
+      const result = extractProductQueries('ada produk pompa ASI elektrik?');
+      expect(result.length).toBeGreaterThan(0);
+    });
+  });
 });

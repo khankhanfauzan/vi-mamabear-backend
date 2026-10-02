@@ -25,6 +25,7 @@ export type BlockReason = (typeof BLOCK_REASONS)[keyof typeof BLOCK_REASONS];
 export const EMERGENCY_MEDICAL_KEYWORDS: RegExp[] = [
   // Perdarahan
   /pendarahan/i,
+  /pendaraah/i, // common typo
   /berdarah\s*(banyak|terus|hebat|deras|parah)/i,
   /darah\s*(banyak|mengalir|keluar\s*terus|tidak\s*berhenti)/i,
   /keluar\s*darah\s*(banyak|terus|tiba[\s-]?tiba)/i,
@@ -266,20 +267,24 @@ export const OUTPUT_MEDICAL_DIAGNOSIS_KEYWORDS: RegExp[] = [
   /diagnosis\s*(anda|kamu|mama|ibu|kak)?\s*(anda|kamu|mama|ibu)?\s*adalah/i,
   /diagnosa\s*(anda|kamu|mama|ibu|kak)?\s*adalah/i,
 
-  // "Anda/mama/ibu/kamu mengalami/menderita/terkena"
-  /(anda|mama|ibu|kamu|kak)\s*(mengalami|menderita|terkena|didiagnosis|terindikasi)/i,
+  // "menderita/terkena/didiagnosis/terindikasi" — selalu diagnosis eksplisit
+  // Sengaja TIDAK termasuk "mengalami" karena digunakan dalam konteks edukatif:
+  // e.g. "Mama mengalami penurunan produksi ASI" → kalimat edukatif, bukan diagnosis
+  /(anda|mama|ibu|kamu|kak)\s*(menderita|terkena|didiagnosis|terindikasi)\s+\S/i,
 
-  // Gejala menunjukkan
-  /gejala\s*(ini|tersebut|yang\s*anda|yang\s*mama|yang\s*kamu)\s*(ini\s*)?(menunjukkan|mengindikasikan|menandakan)/i,
-  /gejala[\s\S]{0,30}menunjukkan/i,
+  // "mengalami" hanya diblok jika diikuti nama penyakit/kondisi medis spesifik
+  /(anda|mama|ibu|kamu|kak)\s*mengalami\s+(penyakit|kanker|diabetes|infeksi\s*(parah|serius|berat)|anemia\s*(defisiensi|berat)|isk|hipertensi|pre[\s-]?eklamsia|eklamsia)/i,
+
+  // Gejala menunjukkan — hanya blok jika mengarah ke diagnosis penyakit pada user
+  /gejala\s*(ini|tersebut)\s*menunjukkan\s*(bahwa\s*)?(anda|mama|ibu|kamu)\s*(menderita|mengidap|positif|terkena)/i,
 
   // Kemungkinan besar
   /kemungkinan\s*(besar)?\s*(anda|mama|ibu|kamu)\s*(mengalami|menderita|terkena)/i,
   /kemungkinan\s*besar\s*(ini|kondisi\s*ini)/i,
 
-  // Ini adalah tanda/gejala dari
-  /ini\s*adalah\s*(tanda|gejala|indikasi|kondisi)\s*(dari|bahwa)?/i,
-  /(tanda|gejala|indikasi)\s*dari\s*(penyakit|kondisi|infeksi|gangguan)/i,
+  // Ini adalah tanda/gejala dari — hanya blok jika dari penyakit/kondisi patologis
+  /ini\s*adalah\s*(tanda|gejala)\s*dari\s*(penyakit|infeksi|gangguan\s*(medis|kesehatan)|kondisi\s*(medis|patologis))/i,
+  /(tanda|gejala|indikasi)\s*dari\s*(penyakit|infeksi\s+\w+|kanker|tumor|gangguan\s+medis)/i,
 
   // Penyakit ini adalah
   /penyakit\s*(ini|anda|mama|tersebut)\s*adalah/i,
@@ -290,10 +295,10 @@ export const OUTPUT_MEDICAL_DIAGNOSIS_KEYWORDS: RegExp[] = [
   /positif\s*(mengidap|menderita|terkena)/i,
   /dipastikan\s*(mengalami|menderita|terkena)/i,
 
-  // Ini menandakan kondisi
-  /(ini|gejala\s*ini|kondisi\s*ini)\s*menandakan\s*(bahwa\s*)?(anda|mama|ibu|kamu)?/i,
+  // Ini menandakan penyakit/kondisi serius (hanya dengan konteks penyakit)
   /menunjukkan\s*(adanya|bahwa)\s*(anda|mama|ibu)\s*(mengalami|menderita)/i,
 ];
+
 
 // ─────────────────────────────────────────────────────────────
 // 5. Rekomendasi Obat Spesifik (Output Guardrail)

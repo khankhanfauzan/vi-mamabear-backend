@@ -27,6 +27,23 @@ export interface GuardrailResult {
  */
 @Injectable()
 export class GuardrailService {
+  /**
+   * Patterns that indicate the user is asking an educational or hypothetical
+   * question — NOT reporting an active emergency. When these patterns match,
+   * the EMERGENCY block rule is skipped so the LLM can answer educationally.
+   *
+   * Example that should pass: "kalau ada pendarahan di trimester 3 itu normal apa ngga?"
+   * Example that must still block: "tolong saya pendarahan parah sekarang!"
+   */
+  private readonly educationalPatterns: RegExp[] = [
+    /\b(?:normal|aman|bahaya|berbahaya|wajar)\s*(?:ga|gak|nggak|ngga|tidak|kah)?\b/i,
+    /\b(?:apakah|apa)\s+(?:normal|aman|bahaya|wajar|berbahaya|risiko|penyebab|tanda|gejala)\b/i,
+    /\bitu\s+(?:normal|aman|bahaya|wajar|kenapa|mengapa|gimana)\b/i,
+    /\b(?:kalau|kalo|jika|misalnya|misal)\s+ada\b/i,
+    /\b(?:kenapa|mengapa|penyebab|apa\s+penyebab|gimana|bagaimana)\b/i,
+    /\b(?:cara\s+mengatasi|cara\s+mencegah|cara\s+menghindari)\b/i,
+  ];
+
   private readonly rules: Array<{
     patterns: RegExp[];
     blockReason: BlockReason;
@@ -54,7 +71,21 @@ export class GuardrailService {
   check(message: string): GuardrailResult | null {
     const normalizedMessage = message.trim().toLowerCase();
 
+    // Detect educational/hypothetical framing — if present, skip the EMERGENCY
+    // block so users can ask questions like "apakah pendarahan trimester 3 normal?"
+    // Active emergencies ("tolong, saya pendarahan parah sekarang!") do NOT match
+    // these patterns and continue to be blocked as expected.
+    const isEducationalQuestion = this.educationalPatterns.some((p) =>
+      p.test(normalizedMessage),
+    );
+
     for (const rule of this.rules) {
+      // Educational questions are allowed to mention emergency symptoms
+      // (they are asking for information, not reporting a crisis)
+      if (isEducationalQuestion && rule.blockReason === BLOCK_REASONS.EMERGENCY) {
+        continue;
+      }
+
       const matched = rule.patterns.some((pattern) =>
         pattern.test(normalizedMessage),
       );

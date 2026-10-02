@@ -187,4 +187,41 @@ describe('GuardrailService', () => {
       expect(result?.responseMessage).toMatch(/\bMa\b|Mama/);
     });
   });
+
+  describe('VIMB-98: Educational bypass for emergency guardrail (Bug #4)', () => {
+    it('should NOT block educational question about trimester bleeding', () => {
+      const result = service.check(
+        'min kalau ada pendarahan di trimester 3 itu normal apa ngga?',
+      );
+      expect(result).toBeNull();
+    });
+
+    it('should NOT block "apakah pendarahan saat hamil itu bahaya?"', () => {
+      const result = service.check(
+        'apakah pendarahan saat hamil itu bahaya?',
+      );
+      expect(result).toBeNull();
+    });
+
+    it('should STILL block active emergency "tolong saya pendarahan parah sekarang"', () => {
+      const result = service.check('tolong saya pendarahan parah sekarang');
+      expect(result).not.toBeNull();
+      expect(result?.blockReason).toBe(BLOCK_REASONS.EMERGENCY);
+    });
+  });
+
+  describe('VIMB-98: Output guardrail false-positive fixes (Bug #2)', () => {
+    it('should NOT block educational statement "Mama mengalami penurunan produksi ASI"', () => {
+      const result = service.checkOutput(
+        'Mama mengalami penurunan produksi ASI karena stres dan kurang cairan. Ini bisa diatasi dengan memperbanyak minum air putih dan menyusui lebih sering.',
+      );
+      expect(result).toBeNull();
+    });
+
+    it('should STILL block explicit disease diagnosis "Mama menderita diabetes gestasional"', () => {
+      const result = service.checkOutput('Mama menderita diabetes gestasional.');
+      expect(result).not.toBeNull();
+      expect(result?.blockReason).toBe(BLOCK_REASONS.MEDICAL_DIAGNOSIS);
+    });
+  });
 });

@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { AiRole, Prisma } from '@/generated/prisma';
+import { EmbeddingsService } from '@/embeddings/embeddings.service';
 
 @Injectable()
 export class AiRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly embeddings: EmbeddingsService,
+  ) {}
 
   async createConversation(userId: string) {
     return this.prisma.aiConversation.create({
@@ -197,5 +201,38 @@ export class AiRepository {
       throw new Error('CONVERSATION_NOT_FOUND');
     }
     return result;
+  }
+
+  /**
+   * Find products relevant to `query` using pgvector cosine similarity.
+   * Used as a fallback when the LLM does not emit [PRODUCT_IDS] tags.
+   *
+   * @param query  Raw user message (not pre-processed)
+   * @param limit  Maximum number of products to return (default 3)
+   * @param threshold  Minimum similarity score 0–1 (default 0.72)
+   */
+  async findProductsBySemanticSearch(
+    query: string,
+    limit = 3,
+    threshold = 0.72,
+  ) {
+    const embedding =
+      await this.embeddings.generateEmbeddingFromString(query);
+    const vector = this.embeddings.embeddingArrayToString(embedding);
+
+    const matches = await this.prisma.$queryRaw<
+      { id: number; similarity: number }[]
+    >`
+      SELECT id, 1 - (embedding <=> ${vector}::vector) AS similarity
+      FROM "Product"
+      WHERE "isActive" = true
+        AND embedding IS NOT NULL
+        AND 1 - (embedding <=> ${vector}::vector) >= ${threshold}
+      ORDER BY embedding <=> ${vector}::vector
+      LIMIT ${limit}
+    `;
+
+    if (matches.length === 0) return [];
+    return this.findProductsByIds(matches.map((m) => m.id));
   }
 }
