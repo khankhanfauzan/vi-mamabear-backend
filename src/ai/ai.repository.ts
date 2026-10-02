@@ -51,6 +51,7 @@ export class AiRepository {
         blockReason: params.blockReason,
         tokensUsed: params.tokensUsed ?? 0,
         model: params.model ?? 'openrouter/default',
+        metadata: params.metadata,
       },
     });
   }

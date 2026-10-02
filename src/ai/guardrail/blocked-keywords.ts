@@ -43,10 +43,10 @@ export const EMERGENCY_MEDICAL_KEYWORDS: RegExp[] = [
   /nadi\s*(tidak\s*ada|hilang|tidak\s*teraba)/i,
 
   // Pernapasan — diperluas tanpa qualifier wajib
-  /sesak\s*napas\s*(parah|berat|mendadak|tiba[\s-]?tiba|sekali|banget)/i,
-  /sesak\s*napas\s*(yang\s*)?(sangat|amat|luar\s*biasa)/i,
+  /sesak\s*napas(?:\s*(?:parah|berat|mendadak|tiba[\s-]?tiba|sekali|banget|sering))?/i,
+  /sesak\s*napas(?:\s*(?:yang\s*)?(?:sangat|amat|luar\s*biasa))?/i,
   /tidak\s*bisa\s*(bernapas|napas)/i,
-  /susah\s*(bernapas|napas)\s*(parah|berat|banget|sekali)/i,
+  /susah\s*(bernapas|napas)(?:\s*(?:parah|berat|banget|sekali))?/i,
   /napas\s*(berhenti|tersengal[\s-]?sengal|megap|pendek\s*banget)/i,
   /napas\s*(bayi|mama|ibu)\s*(berhenti|tidak\s*ada|megap)/i,
 

@@ -175,6 +175,46 @@ PENTING:
 3. JANGAN tulis ID produk (misal "ID 3" atau "(ID 3)") di dalam teks jawaban; ID hanya untuk tag [PRODUCT_IDS].`;
 }
 
+function extractProductIdsFromContent(
+  content: string,
+  availableProducts: ProductContext[],
+): Set<number> {
+  const matched = new Set<number>();
+  const lowerContent = content.toLowerCase();
+
+  for (const product of availableProducts) {
+    // 1. Core title before separator (e.g. "MamaBear Kukis Almond Oat - Camilan..." -> "kukis almond oat")
+    const titleSegment = product.name.split(/[-–—]/)[0].trim();
+    const cleanTitle = titleSegment
+      .replace(/^Mama\s*Bear\s*/i, '')
+      .replace(/\s*Isi\s*\d+\s*(?:Sachet|Kapsul|Btl|Pcs)?/gi, '')
+      .trim()
+      .toLowerCase();
+
+    if (cleanTitle.length > 2 && lowerContent.includes(cleanTitle)) {
+      matched.add(product.id);
+      continue;
+    }
+
+    // 2. Specific distinctive product line keywords
+    const keywords: string[] = [];
+    if (/almonmix/i.test(product.name)) keywords.push('almonmix', 'almon mix');
+    if (/zoyamix/i.test(product.name)) keywords.push('zoyamix', 'zoya mix');
+    if (/teh/i.test(product.name)) keywords.push('teh pelancar asi', 'teh mamabear', 'teh booster');
+    if (/kukis/i.test(product.name)) keywords.push('kukis almond oat', 'kukis almond', 'kukis mamabear', 'kukis');
+    if (/kapsul/i.test(product.name)) keywords.push('asi booster 30 kapsul', 'kapsul pelancar asi', 'kapsul booster', 'kapsul mamabear', 'kapsul');
+
+    for (const kw of keywords) {
+      if (lowerContent.includes(kw)) {
+        matched.add(product.id);
+        break;
+      }
+    }
+  }
+
+  return matched;
+}
+
 function sanitizeAiReply(
   content: string,
   recommendedProducts: { name: string }[],
@@ -516,16 +556,21 @@ export class AiService {
 
     // ── Semantic Product Fallback (Bug #3 fix) ────────────────────────
     // When the LLM (especially the small fallback model) does not include
-    // [PRODUCT_IDS] or inline ID mentions, run a vector similarity search
-    // on the user's original message to surface relevant products.
-    // This is non-fatal: a search failure does not affect the LLM reply.
+    // [PRODUCT_IDS] or inline ID mentions, we do:
+    // 1. Direct Name Mention Matching
+    // 2. Vector similarity search as a last resort
     if (matchedProductIds.size === 0 && products.length > 0) {
-      try {
-        const semanticProducts = await this.aiRepo.findProductsBySemanticSearch(
-          dto.message,
-          3,
-          0.72,
-        );
+      const nameMatchedIds = extractProductIdsFromContent(finalContent, products);
+      nameMatchedIds.forEach((id) => matchedProductIds.add(id));
+      
+      // If we still found no products and it's an educational/ASI query, run semantic search
+      if (matchedProductIds.size === 0) {
+        try {
+          const semanticProducts = await this.aiRepo.findProductsBySemanticSearch(
+            dto.message,
+            3,
+            0.22,
+          );
         if (semanticProducts.length > 0) {
           recommendedProducts = semanticProducts;
           this.logger.info(
@@ -539,6 +584,7 @@ export class AiService {
           'Semantic product fallback search failed, continuing without products',
         );
       }
+      } // End of nested if (matchedProductIds.size === 0)
     }
     // ── End Semantic Product Fallback ─────────────────────────────────
 

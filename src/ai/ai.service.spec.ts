@@ -438,6 +438,59 @@ Yes, ID 5 is the capsule product: "MamaBear ASI Booster 30 Kapsul - Pelancar ASI
       expect(result.data?.products).toHaveLength(2);
     });
 
+    
+    it('should extract product ID by name mention if tags and IDs are missing', async () => {
+      guardrail.check.mockReturnValue(null);
+      guardrail.checkOutput.mockReturnValue(null);
+      
+      aiRepo.countConversationsByUser.mockResolvedValue(1);
+      aiRepo.createConversation.mockResolvedValue({
+        id: 'conv-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      aiRepo.getActiveProductsForContext.mockResolvedValue([
+        {
+          id: 4,
+          name: 'MamaBear Kukis Almond Oat - Camilan Kaya Nutrisi',
+          ingredients: null,
+          description: null,
+          categoryName: null,
+          price: 50000,
+        },
+      ]);
+      aiRepo.findProductsByIds.mockResolvedValue([
+        {
+          id: 4,
+          name: 'MamaBear Kukis Almond Oat',
+          slug: 'mamabear-kukis-almond-oat',
+          category: 'Kukis',
+          imageUrl: '',
+          price: 50000,
+          formattedPrice: 'Rp50.000',
+          rating: 4.8,
+          reviewCount: 120,
+          totalSold: 500,
+          shortDescription: 'Kukis enak',
+        },
+      ]);
+
+      openRouter.chat.mockResolvedValue({
+        content: 'Ya, Ma! Ada produk yang mirip dengan kue: **MamaBear Kukis Almond Oat** ini camilan superfood.',
+        tokensUsed: 15,
+        model: 'mock-model',
+      });
+
+      const result = await service.chat('user-1', {
+        message: 'ada pelancar asi yang seperti kue?',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data?.products).toHaveLength(1);
+      expect(result.data?.products[0].id).toBe(4);
+    });
+
     it('should keep [PRODUCT_IDS] extraction working while removing ID text from reply (VIMB-94)', async () => {
       guardrail.check.mockReturnValue(null);
       guardrail.checkOutput.mockReturnValue(null);
