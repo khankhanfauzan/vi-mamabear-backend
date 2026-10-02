@@ -10,8 +10,11 @@ export const mailerConfig = {
       configService.get<string>('MAILHOG_URL') ||
       'smtp-relay.brevo.com';
 
-    // Bersihkan host jika terdapat prefix seperti "://" atau "https://"
-    const host = rawHost.replace(/^(?:https?:\/\/|:\/\/)/, '').trim();
+    // Bersihkan host jika terdapat prefix seperti "://", "https://", atau sekadar ":"
+    let host = rawHost.replace(/^(?:https?:\/\/|:\/\/|:)/, '').trim();
+    if (host === 'brevo.com') {
+      host = 'smtp-relay.brevo.com';
+    }
 
     const port =
       Number(
