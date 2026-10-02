@@ -6,11 +6,19 @@ import { OpenRouterClient } from './openrouter/openrouter.client';
 import { AuthModule } from '@/auth/auth.module';
 import { PrismaModule } from '@/prisma/prisma.module';
 import { GuardrailService } from './guardrail/guardrail.service';
+import { ProductScopeGuardrailService } from './guardrail/product-scope-guardrail.service';
+import { EmbeddingsModule } from '@/embeddings/embeddings.module';
 
 @Module({
-  imports: [AuthModule, PrismaModule],
+  imports: [AuthModule, PrismaModule, EmbeddingsModule],
   controllers: [AiController],
-  providers: [AiService, AiRepository, OpenRouterClient, GuardrailService],
+  providers: [
+    AiService,
+    AiRepository,
+    OpenRouterClient,
+    GuardrailService,
+    ProductScopeGuardrailService,
+  ],
   exports: [AiService],
 })
 export class AiModule {}

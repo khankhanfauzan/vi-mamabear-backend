@@ -15,6 +15,7 @@ import { AiRole } from '@/generated/prisma';
 import { ConversationSummaryDto } from './dto/conversation-summary.dto';
 import { ConversationHistoryDto } from './dto/conversation-history.dto';
 import { GuardrailService } from './guardrail/guardrail.service';
+import { ProductScopeGuardrailService } from './guardrail/product-scope-guardrail.service';
 
 const MAX_INPUT_LENGTH = 1000;
 const MAX_CONVERSATIONS_PER_USER = 50;
@@ -61,6 +62,72 @@ const SYSTEM_PROMPT_BASE = `Kamu adalah "Mama Bear AI", asisten kesehatan resmi,
 - JIKA pengguna bertanya di luar topik kehamilan, menyusui, bayi, atau produk MamaBear, tolak dengan ramah: "Maaf Ma, Mama Bear AI saat ini hanya dapat membantu seputar nutrisi laktasi, kehamilan, dan informasi produk MamaBear. Ada yang bisa dibantu terkait ASI?"
 - JANGAN mengarang produk yang tidak ada di [DATA_PRODUK_AKTIF].`;
 
+/**
+ * Instruksi deteksi ambiguitas dan klarifikasi untuk sistem prompt AI.
+ * AI akan merespons dengan prefix [CLARIFY] jika pesan user dinilai ambigu,
+ * sehingga backend dapat membedakan respons klarifikasi dari jawaban biasa.
+ */
+const CLARIFICATION_INSTRUCTION = `
+# DETEKSI AMBIGUITAS & KLARIFIKASI (WAJIB DIBACA):
+Sebelum menjawab, evaluasi apakah pesan Mama cukup spesifik untuk dijawab dengan akurat.
+
+## Pesan dianggap AMBIGU jika memenuhi MINIMAL SATU dari kondisi berikut:
+- Tidak menyebutkan kategori, usia, kondisi, atau kebutuhan spesifik.
+  Contoh: "ada produk apa aja?", "rekomendasiin dong", "mau beli sesuatu", "produk bagus apa?".
+- Bisa merujuk ke banyak kemungkinan produk atau topik berbeda tanpa konteks tambahan.
+  Contoh: "yang bagus buat bayi" (bagus dalam hal apa? usia berapa?).
+
+## Jika AMBIGU:
+- JANGAN langsung menjawab dengan asumsi atau daftar produk generik.
+- Balas HANYA dengan prefix [CLARIFY] diikuti SATU pertanyaan follow-up singkat yang relevan.
+- Format wajib: [CLARIFY] <pertanyaan klarifikasi>
+- Contoh respons yang benar:
+  [CLARIFY] Boleh tau usia si kecil berapa bulan, Ma? Biar aku bisa kasih rekomendasi yang paling pas 😊
+  [CLARIFY] Kebutuhannya lebih ke arah perlengkapan menyusui atau nutrisi untuk Mama ya?
+
+## Jika TIDAK ambigu (user sudah kasih konteks jelas):
+- Jawab langsung seperti biasa TANPA prefix [CLARIFY].
+- JANGAN tanya balik hanya untuk memastikan.
+
+## ATURAN ANTI-LOOP KLARIFIKASI (SANGAT PENTING):
+- Jika dalam riwayat percakapan kamu SUDAH pernah mengirim pertanyaan klarifikasi ([CLARIFY]) untuk topik yang sama,
+  JANGAN tanya lagi meski jawaban Mama masih kurang lengkap — jawab dengan informasi yang tersedia saat ini.
+- Maksimal 1x klarifikasi berturut-turut untuk 1 topik.
+
+## FEW-SHOT EXAMPLES:
+
+### AMBIGU → balas dengan [CLARIFY]:
+User: "ada produk apa aja min?"
+AI: [CLARIFY] Boleh cerita dulu, Ma, lagi cari produk untuk kebutuhan apa? Misalnya pelancar ASI, nutrisi kehamilan, atau camilan sehat? 😊
+
+User: "rekomendasiin dong"
+AI: [CLARIFY] Tentu, Ma! Biar rekomendasinya pas, boleh tau lagi butuh produk untuk apa ya? Untuk menyusui, kehamilan, atau perawatan bayi?
+
+User: "produk buat bayi apa aja?"
+AI: [CLARIFY] Boleh tau usia si kecil berapa bulan, Ma? Biar rekomendasi produknya lebih pas sesuai tahap tumbuh kembangnya 😊
+
+User: "yang bagus buat bayi"
+AI: [CLARIFY] Kebutuhannya lebih ke arah perlengkapan menyusui atau suplemen nutrisi untuk Mama yang masih menyusui, Ma?
+
+User: "mau beli sesuatu buat bayi baru lahir"
+AI: [CLARIFY] Wah selamat ya Ma! 🎉 Untuk bayi baru lahir, Mama lebih butuh produk perawatan bayi atau produk pelancar ASI untuk Mama?
+
+### TIDAK AMBIGU → jawab langsung tanpa [CLARIFY]:
+User: "ada pompa ASI elektrik ga?"
+AI: (jawab langsung — sudah spesifik: pompa ASI, tipe elektrik)
+
+User: "anak saya 6 bulan, mau MPASI, ada rekomendasi produk?"
+AI: (jawab langsung — sudah ada konteks usia dan kebutuhan MPASI)
+
+User: "cara melancarkan ASI yang seret itu gimana?"
+AI: (jawab langsung — pertanyaan edukasi yang spesifik)
+
+User: "ada suplemen DHA untuk ibu hamil trimester 3?"
+AI: (jawab langsung — sudah spesifik: suplemen DHA, ibu hamil, trimester 3)
+
+User: "MamaBear ASI Booster kapsul ada stoknya ga?"
+AI: (jawab langsung — menyebutkan nama produk spesifik)`;
+
 type ProductContext = {
   id: number;
   name: string;
@@ -71,7 +138,8 @@ type ProductContext = {
 };
 
 function buildSystemPrompt(products: ProductContext[]): string {
-  if (products.length === 0) return SYSTEM_PROMPT_BASE;
+  const base = `${SYSTEM_PROMPT_BASE}\n${CLARIFICATION_INSTRUCTION}`;
+  if (products.length === 0) return base;
 
   const productList = products
     .map((p) => {
@@ -84,7 +152,7 @@ function buildSystemPrompt(products: ProductContext[]): string {
     })
     .join('\n');
 
-  return `${SYSTEM_PROMPT_BASE}
+  return `${base}
 
 [DATA_PRODUK_AKTIF]:
 ${productList}
@@ -150,6 +218,7 @@ export class AiService {
     private readonly openRouter: OpenRouterClient,
     private readonly logger: PinoLogger,
     private readonly guardrail: GuardrailService,
+    private readonly productGuardrail: ProductScopeGuardrailService,
   ) {
     this.logger.setContext(AiService.name);
   }
@@ -162,7 +231,9 @@ export class AiService {
     }
 
     // ── Guardrail check ──────────────────────────────────────────────
-    const guardrailResult = this.guardrail.check(dto.message);
+    const guardrailResult =
+      this.guardrail.check(dto.message) ??
+      (await this.productGuardrail.check(dto.message));
 
     if (guardrailResult) {
       this.logger.warn(
@@ -338,6 +409,50 @@ export class AiService {
     }
     // ── End Output Guardrail Check ───────────────────────────────────
 
+    // ── Clarification Detection ──────────────────────────────────────
+    // Jika LLM menilai pesan user ambigu, ia merespons dengan prefix [CLARIFY].
+    // Backend mendeteksi prefix ini, melepasnya dari teks, dan mengembalikan
+    // response dengan type='clarification' tanpa melakukan ekstraksi produk.
+    const CLARIFY_PREFIX_REGEX = /^\[CLARIFY\]\s*/;
+    const isClarification = CLARIFY_PREFIX_REGEX.test(finalContent.trim());
+
+    if (isClarification) {
+      finalContent = finalContent
+        .trim()
+        .replace(CLARIFY_PREFIX_REGEX, '')
+        .trim();
+
+      await this.aiRepo.createMessage({
+        conversationId,
+        role: AiRole.ASSISTANT,
+        content: finalContent,
+        tokensUsed: result.tokensUsed,
+        model: result.model,
+      });
+
+      await this.aiRepo.updateConversationTimestamp(conversationId);
+
+      const clarificationResponse: ChatResponseDto = {
+        success: true,
+        message: 'Pesan berhasil diproses',
+        data: {
+          conversationId,
+          reply: finalContent,
+          products: [],
+          blocked: false,
+          type: 'clarification',
+        },
+      };
+
+      this.logger.info(
+        { userId, conversationId },
+        'Chat API response sent (clarification question)',
+      );
+
+      return clarificationResponse;
+    }
+    // ── End Clarification Detection ──────────────────────────────────
+
     // ── Extract PRODUCT_IDS from reply ────────────────────────────────
     let recommendedProducts: {
       id: number;
@@ -422,6 +537,7 @@ export class AiService {
         reply: finalContent,
         products: recommendedProducts,
         blocked: false,
+        type: 'answer',
       },
     };
 
@@ -450,11 +566,11 @@ export class AiService {
       updatedAt: conv.updatedAt,
       lastMessage: conv.messages[0]
         ? {
-          id: conv.messages[0].id,
-          role: conv.messages[0].role,
-          content: conv.messages[0].content,
-          createdAt: conv.messages[0].createdAt,
-        }
+            id: conv.messages[0].id,
+            role: conv.messages[0].role,
+            content: conv.messages[0].content,
+            createdAt: conv.messages[0].createdAt,
+          }
         : null,
     }));
   }

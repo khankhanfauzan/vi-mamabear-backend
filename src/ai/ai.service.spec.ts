@@ -3,6 +3,7 @@ import { AiService } from './ai.service';
 import { AiRepository } from './ai.repository';
 import { OpenRouterClient } from './openrouter/openrouter.client';
 import { GuardrailService } from './guardrail/guardrail.service';
+import { ProductScopeGuardrailService } from './guardrail/product-scope-guardrail.service';
 import { PinoLogger } from 'pino-nestjs';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AiRole } from '@/generated/prisma';
@@ -12,6 +13,7 @@ describe('AiService', () => {
   let aiRepo: jest.Mocked<AiRepository>;
   let openRouter: jest.Mocked<OpenRouterClient>;
   let guardrail: jest.Mocked<GuardrailService>;
+  let productGuardrail: { check: jest.Mock };
 
   beforeEach(async () => {
     const mockAiRepo = {
@@ -37,6 +39,7 @@ describe('AiService', () => {
       check: jest.fn(),
       checkOutput: jest.fn(),
     };
+    productGuardrail = { check: jest.fn().mockResolvedValue(null) };
 
     const mockLogger = {
       setContext: jest.fn(),
@@ -51,6 +54,7 @@ describe('AiService', () => {
         { provide: AiRepository, useValue: mockAiRepo },
         { provide: OpenRouterClient, useValue: mockOpenRouter },
         { provide: GuardrailService, useValue: mockGuardrail },
+        { provide: ProductScopeGuardrailService, useValue: productGuardrail },
         { provide: PinoLogger, useValue: mockLogger },
       ],
     }).compile();
@@ -66,6 +70,33 @@ describe('AiService', () => {
   });
 
   describe('chat', () => {
+    it('blocks an absent product before LLM generation and records only the safe answer', async () => {
+      productGuardrail.check.mockResolvedValue({
+        blockReason: 'PRODUCT_OUT_OF_SCOPE',
+        responseMessage:
+          'Aku belum menemukan produk itu, Ma. Mau aku bantu cari alternatif?',
+      });
+      aiRepo.findConversationById.mockResolvedValue({ id: 'conv-1' } as never);
+      const result = await service.chat('user-1', {
+        conversationId: 'conv-1',
+        message: 'Jual kantong ASI ga Min?',
+      });
+      expect(result.data).toMatchObject({
+        blocked: true,
+        blockReason: 'PRODUCT_OUT_OF_SCOPE',
+        products: [],
+        reply: null,
+      });
+      expect(openRouter.chat).not.toHaveBeenCalled();
+      expect(aiRepo.createMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          role: AiRole.ASSISTANT,
+          blocked: true,
+          content: result.message,
+        }),
+      );
+      expect(aiRepo.getActiveProductsForContext).not.toHaveBeenCalled();
+    });
     it('should not duplicate the latest user message in AI prompt', async () => {
       guardrail.check.mockReturnValue(null);
       guardrail.checkOutput.mockReturnValue(null);
@@ -488,6 +519,114 @@ Yes, ID 5 is the capsule product: "MamaBear ASI Booster 30 Kapsul - Pelancar ASI
     });
   });
 
+  describe('clarification detection', () => {
+    const setupMocks = () => {
+      guardrail.check.mockReturnValue(null);
+      guardrail.checkOutput.mockReturnValue(null);
+      aiRepo.countConversationsByUser.mockResolvedValue(1);
+      aiRepo.createConversation.mockResolvedValue({
+        id: 'conv-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      aiRepo.findMessagesByConversation.mockResolvedValue([]);
+    };
+
+    it('should return type=clarification when LLM responds with [CLARIFY] prefix', async () => {
+      setupMocks();
+      openRouter.chat.mockResolvedValue({
+        content:
+          '[CLARIFY] Boleh cerita dulu, Ma, lagi cari produk untuk kebutuhan apa? Misalnya pelancar ASI, nutrisi kehamilan, atau camilan sehat? 😊',
+        tokensUsed: 15,
+        model: 'mock-model',
+      });
+
+      const result = await service.chat('user-1', {
+        message: 'ada produk apa aja?',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data?.type).toBe('clarification');
+    });
+
+    it('should strip [CLARIFY] prefix completely from reply text', async () => {
+      setupMocks();
+      openRouter.chat.mockResolvedValue({
+        content: '[CLARIFY] Kebutuhannya lebih ke menyusui atau nutrisi, Ma?',
+        tokensUsed: 10,
+        model: 'mock-model',
+      });
+
+      const result = await service.chat('user-1', {
+        message: 'rekomendasiin dong',
+      });
+
+      expect(result.data?.reply).not.toMatch(/^\[CLARIFY\]/);
+      expect(result.data?.reply).toContain('Kebutuhannya');
+    });
+
+    it('should return empty products and skip findProductsByIds when clarification', async () => {
+      setupMocks();
+      openRouter.chat.mockResolvedValue({
+        content: '[CLARIFY] Untuk usia berapa bulan, Ma?',
+        tokensUsed: 10,
+        model: 'mock-model',
+      });
+
+      const result = await service.chat('user-1', {
+        message: 'produk buat bayi',
+      });
+
+      expect(result.data?.products).toHaveLength(0);
+      expect(aiRepo.findProductsByIds).not.toHaveBeenCalled();
+    });
+
+    it('should return type=answer for a specific non-ambiguous product query', async () => {
+      setupMocks();
+      openRouter.chat.mockResolvedValue({
+        content: 'Halo Ma! Tersedia pompa ASI elektrik dari MamaBear.',
+        tokensUsed: 10,
+        model: 'mock-model',
+      });
+
+      const result = await service.chat('user-1', {
+        message: 'ada pompa ASI elektrik ga?',
+      });
+
+      expect(result.data?.type).toBe('answer');
+    });
+
+    it('should respect output guardrail before clarification shortcut — blocked response wins', async () => {
+      guardrail.check.mockReturnValue(null);
+      guardrail.checkOutput.mockReturnValue({
+        blockReason: 'MEDICAL_DIAGNOSIS',
+        responseMessage: 'Blocked by output guardrail',
+      });
+      aiRepo.countConversationsByUser.mockResolvedValue(1);
+      aiRepo.createConversation.mockResolvedValue({
+        id: 'conv-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      aiRepo.findMessagesByConversation.mockResolvedValue([]);
+      openRouter.chat.mockResolvedValue({
+        content: '[CLARIFY] Boleh tau usianya berapa, Ma?',
+        tokensUsed: 5,
+        model: 'mock-model',
+      });
+
+      const result = await service.chat('user-1', {
+        message: 'produk apa aja',
+      });
+
+      // Output guardrail lebih prioritas dari clarification detection
+      expect(result.success).toBe(false);
+      expect(result.message).toBe('Blocked by output guardrail');
+    });
+  });
+
   describe('getConversationHistory', () => {
     it('should return conversation history including recommended products from metadata', async () => {
       const mockProduct = {
@@ -519,6 +658,7 @@ Yes, ID 5 is the capsule product: "MamaBear ASI Booster 30 Kapsul - Pelancar ASI
             blockReason: null,
             tokensUsed: 0,
             model: 'user',
+            metadata: null,
             createdAt: new Date(),
           },
           {
