@@ -6,11 +6,20 @@ export class MailService {
   constructor(private readonly mailService: MailerService) {}
 
   async sendVerificationEmail(email: string, token: string) {
-    const verifyUrl = `${process.env.BACKEND_URL}/auth/verify-email?token=${token}`;
+    const backendUrl = process.env.BACKEND_URL?.replace(/\/$/, '') || 'http://localhost:8000';
+    const verifyUrl = `${backendUrl}/auth/verify-email/${token}`;
+    
     await this.mailService.sendMail({
       to: email,
-      subject: 'Please verify your email',
-      text: `Klik link berikut untuk verify email anda: ${verifyUrl}`,
+      subject: 'Verifikasi Email Akun MamaBear',
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Halo Mama!</h2>
+          <p>Terima kasih telah mendaftar di MamaBear. Silakan klik tombol di bawah ini untuk memverifikasi akun Anda:</p>
+          <a href="${verifyUrl}" style="background-color: #E25B7B; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Verifikasi Akun</a>
+          <p style="margin-top: 16px; font-size: 12px; color: #777;">Atau buka tautan berikut: <a href="${verifyUrl}">${verifyUrl}</a></p>
+        </div>
+      `,
     });
   }
 

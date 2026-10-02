@@ -10,7 +10,7 @@ import { ConfigModule } from '@nestjs/config';
 import { HealthModule } from './health/health.module';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { CustomLoggerModule } from './common/logger/logger.module';
-import { MailHogOptions } from './options/mailhog.options';
+import { mailerConfig } from './config/mailer.config';
 import { CategoryModule } from './category/category.module';
 import { UploadModule } from './upload/upload.module';
 import { ReviewsModule } from './reviews/reviews.module';
@@ -46,7 +46,7 @@ import { PromoModule } from './promo/promo.module';
     }),
     CustomLoggerModule,
     CartModule,
-    MailerModule.forRoot(MailHogOptions),
+    MailerModule.forRootAsync(mailerConfig),
     PrismaModule,
     ProductsModule,
     UsersModule,
