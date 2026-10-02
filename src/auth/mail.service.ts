@@ -6,7 +6,11 @@ export class MailService {
   constructor(private readonly mailService: MailerService) {}
 
   async sendVerificationEmail(email: string, token: string) {
-    const backendUrl = process.env.BACKEND_URL?.replace(/\/$/, '') || 'http://localhost:8000';
+    let backendUrl = process.env.BACKEND_URL?.replace(/\/$/, '') || 'https://vi-mamabear-backend.onrender.com';
+    // Pastikan base URL mengarah ke /api
+    if (!backendUrl.endsWith('/api')) {
+      backendUrl += '/api';
+    }
     const verifyUrl = `${backendUrl}/auth/verify-email/${token}`;
     
     await this.mailService.sendMail({
