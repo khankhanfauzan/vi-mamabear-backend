@@ -217,8 +217,7 @@ export class AiRepository {
     limit = 3,
     threshold = 0.72,
   ) {
-    const embedding =
-      await this.embeddings.generateEmbeddingFromString(query);
+    const embedding = await this.embeddings.generateEmbeddingFromString(query);
     const vector = this.embeddings.embeddingArrayToString(embedding);
 
     const matches = await this.prisma.$queryRaw<
