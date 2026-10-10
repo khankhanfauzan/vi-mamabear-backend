@@ -1,52 +1,123 @@
-# mamabear-backend
+# MamaBear Backend
 
-## Endpoints
+Backend REST API untuk **MamaBear**, platform e-commerce produk ibu dan bayi.
+Dibangun dengan [NestJS](https://nestjs.com/) + TypeScript, PostgreSQL (dengan
+[pgvector](https://github.com/pgvector/pgvector) untuk pencarian semantik produk),
+Prisma ORM, dan fitur **AI Health Assistant** berbasis OpenRouter dengan guardrail medis.
 
-Coming soon...
+Fitur utama: katalog produk & varian, cart, order, pembayaran (Midtrans), pengiriman
+(RajaOngkir), review, customer, alamat, upload gambar (Cloudinary), notifikasi email
+(SMTP/Brevo/MailHog), laporan, activity log, dan chat AI untuk pertanyaan kesehatan
+ibu & bayi.
 
-## Description
+Dokumentasi terkait:
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- Fitur AI: [`docs/AI-FEATURE.md`](docs/AI-FEATURE.md)
+- Guardrail produk: [`docs/product-guardrail.md`](docs/product-guardrail.md)
+- Environment variable: [`.env.example`](.env.example)
 
-## Project setup
+## Prasyarat
+
+- Node.js 20+ dan npm
+- Docker + Docker Compose (untuk PostgreSQL ber-pgvector dan MailHog)
+- Akun OpenRouter (untuk fitur AI & embeddings)
+
+## Setup Lokal
+
+1. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+2. Jalankan service pendukung (PostgreSQL + MailHog):
+
+   ```bash
+   docker compose up -d db mailhog
+   ```
+
+   - PostgreSQL: `localhost:5432` (user/password/db: `satria`/`satria`/`mamabear`)
+   - MailHog SMTP: `localhost:1025`, web UI: `http://localhost:8025`
+
+3. Salin template environment lalu isi sesuai kebutuhan (minimal `DATABASE_URL`,
+   JWT secrets, dan `OPENROUTER_API_KEY` untuk fitur AI):
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Daftar lengkap variabel dan fungsinya ada di `.env.example`.
+
+4. Jalankan migrasi database:
+
+   ```bash
+   npx prisma migrate deploy
+   ```
+
+5. (Opsional) Seed data produk, user, kategori, review, dan settings.
+   Membutuhkan `OPENROUTER_API_KEY` (embedding produk) dan kredensial Cloudinary
+   yang valid (upload gambar):
+
+   ```bash
+   npm run seed
+   ```
+
+## Menjalankan Server
 
 ```bash
-$ npm install
+# development (watch mode)
+npm run start:dev
+
+# debug mode
+npm run start:debug
+
+# build untuk production (prisma generate + nest build)
+npm run build
+
+# jalankan hasil build
+npm run start:prod
+
+# migrate lalu start dalam satu langkah
+npm run start:migrate
 ```
 
-## Compile and run the project
+Server berjalan di `http://localhost:3001` (sesuai `PORT` di `.env`).
+
+## Menjalankan Test
 
 ```bash
-# development
-$ npm run start
+# unit test
+npm run test
 
-# watch mode
-$ npm run start:dev
+# unit test watch mode
+npm run test:watch
 
-# production mode
-$ npm run start:prod
+# e2e test (butup database aktif, lihat test/jest-e2e.json)
+npm run test:e2e
+
+# coverage
+npm run test:cov
 ```
 
-## Run tests
+## Menjalankan dengan Docker (opsional)
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+# build image lalu jalankan app + db + mailhog
+docker compose up -d --build
 ```
+
+## Kode Style
 
 ```bash
-# pino logger
-$ npm install pino-nestjs pino-http
+# lint + auto-fix
+npm run lint
 
-# pino pretty
-$ npm install --save-dev pino-pretty
-
-# pino roll
-$ npm install pino-roll
+# format dengan Prettier
+npm run format
 ```
+
+## API
+
+Daftar endpoint lengkap ada di modul masing-masing di `src/`
+(controller per domain: auth, products, cart, orders, payment, ai, dll).
+Koleksi request siap pakai tersedia di folder `bruno/` (Bruno API client).
