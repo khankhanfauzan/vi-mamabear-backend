@@ -73,7 +73,6 @@ PENTING — Interpretasi konteks wajib (jangan salah tafsir):
 - JIKA pengguna bertanya di luar topik kehamilan, menyusui, bayi, atau produk MamaBear, tolak dengan ramah: "Maaf Ma, Mama Bear AI saat ini hanya dapat membantu seputar nutrisi laktasi, kehamilan, dan informasi produk MamaBear. Ada yang bisa dibantu terkait ASI?"
 - JANGAN mengarang produk yang tidak ada di [DATA_PRODUK_AKTIF].`;
 
-
 /**
  * Instruksi deteksi ambiguitas dan klarifikasi untuk sistem prompt AI.
  * AI akan merespons dengan prefix [CLARIFY] jika pesan user dinilai ambigu,
@@ -200,9 +199,23 @@ function extractProductIdsFromContent(
     const keywords: string[] = [];
     if (/almonmix/i.test(product.name)) keywords.push('almonmix', 'almon mix');
     if (/zoyamix/i.test(product.name)) keywords.push('zoyamix', 'zoya mix');
-    if (/teh/i.test(product.name)) keywords.push('teh pelancar asi', 'teh mamabear', 'teh booster');
-    if (/kukis/i.test(product.name)) keywords.push('kukis almond oat', 'kukis almond', 'kukis mamabear', 'kukis');
-    if (/kapsul/i.test(product.name)) keywords.push('asi booster 30 kapsul', 'kapsul pelancar asi', 'kapsul booster', 'kapsul mamabear', 'kapsul');
+    if (/teh/i.test(product.name))
+      keywords.push('teh pelancar asi', 'teh mamabear', 'teh booster');
+    if (/kukis/i.test(product.name))
+      keywords.push(
+        'kukis almond oat',
+        'kukis almond',
+        'kukis mamabear',
+        'kukis',
+      );
+    if (/kapsul/i.test(product.name))
+      keywords.push(
+        'asi booster 30 kapsul',
+        'kapsul pelancar asi',
+        'kapsul booster',
+        'kapsul mamabear',
+        'kapsul',
+      );
 
     for (const kw of keywords) {
       if (lowerContent.includes(kw)) {
@@ -560,37 +573,40 @@ export class AiService {
     // 1. Direct Name Mention Matching
     // 2. Vector similarity search as a last resort
     if (matchedProductIds.size === 0 && products.length > 0) {
-      const nameMatchedIds = extractProductIdsFromContent(finalContent, products);
+      const nameMatchedIds = extractProductIdsFromContent(
+        finalContent,
+        products,
+      );
       nameMatchedIds.forEach((id) => matchedProductIds.add(id));
-      
+
       // If we still found no products and it's an educational/ASI query, run semantic search
       if (matchedProductIds.size === 0) {
         try {
-          const semanticProducts = await this.aiRepo.findProductsBySemanticSearch(
-            dto.message,
-            3,
-            0.22,
-          );
-        if (semanticProducts.length > 0) {
-          recommendedProducts = semanticProducts;
-          this.logger.info(
-            { userId, conversationId, count: semanticProducts.length },
-            'Semantic product fallback: found relevant products',
+          const semanticProducts =
+            await this.aiRepo.findProductsBySemanticSearch(
+              dto.message,
+              3,
+              0.22,
+            );
+          if (semanticProducts.length > 0) {
+            recommendedProducts = semanticProducts;
+            this.logger.info(
+              { userId, conversationId, count: semanticProducts.length },
+              'Semantic product fallback: found relevant products',
+            );
+          }
+        } catch (err) {
+          this.logger.warn(
+            { err: err instanceof Error ? err : String(err) },
+            'Semantic product fallback search failed, continuing without products',
           );
         }
-      } catch (err) {
-        this.logger.warn(
-          { err },
-          'Semantic product fallback search failed, continuing without products',
-        );
-      }
       } // End of nested if (matchedProductIds.size === 0)
     }
     // ── End Semantic Product Fallback ─────────────────────────────────
 
     // Bersihkan teks jawaban dari proses berpikir / listing ID berlebih
     finalContent = sanitizeAiReply(finalContent, recommendedProducts);
-
 
     // Truncate jika > 500 karakter
     if (finalContent.length > 500) {
@@ -718,7 +734,7 @@ export class AiService {
 
     // Filter out blocked messages before slicing, so we get 10 actual safe messages
     const safeHistory = history.filter((msg) => !msg.blocked).slice(-10);
-    
+
     for (const msg of safeHistory) {
       if (msg.role === AiRole.USER) {
         messages.push({ role: 'user', content: msg.content });
