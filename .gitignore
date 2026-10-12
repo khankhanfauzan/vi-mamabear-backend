@@ -46,6 +46,10 @@ lerna-debug.log*
 .env.production.local
 .env.local
 
+# API client local results & exports (berpotensi berisi token/JWT)
+bruno-results*.json
+*.postman_collection.json
+
 # temp directory
 .temp
 .tmp

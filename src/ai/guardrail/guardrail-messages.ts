@@ -13,24 +13,24 @@ export const GUARDRAIL_MESSAGES = {
     'Katalog kita belum bisa aku cek sekarang, Ma. Mama bisa coba lagi sebentar ya. Sambil menunggu, aku siap bantu informasi seputar menyusui atau kebutuhan si kecil 😊',
   ],
   EMERGENCY_MEDICAL_QUERY: [
-    'Waduh, ini sepertinya darurat ya, Ma 🙏 Cepat hubungi dokter/IGD terdekat atau WhatsApp MamaBear di 628888695757 agar segera ditangani, ya.',
-    'Kayaknya perlu penanganan segera nih, Ma. Tolong langsung hubungi dokter/IGD terdekat atau WhatsApp MamaBear (628888695757) sekarang juga ya 🙏',
+    'Waduh, ini sepertinya darurat ya, Ma 🙏 Cepat hubungi dokter/IGD terdekat atau WhatsApp MamaBear di https://wa.me/628888695757 agar segera ditangani, ya.',
+    'Kayaknya perlu penanganan segera nih, Ma. Tolong langsung hubungi dokter/IGD terdekat atau WhatsApp MamaBear (https://wa.me/628888695757) sekarang juga ya 🙏',
   ],
   PRESCRIPTION_REQUEST: [
-    'Aku belum bisa meresepkan obat atau menentukan dosis ya, Ma 🙏 Untuk keamanan Mama & si kecil, konsultasikan langsung dengan dokter atau apoteker ya.',
-    'Maaf ya, Ma, urusan resep dan dosis obat sebaiknya serahkan pada dokter atau apoteker supaya aman. Aku bantu cari info kesehatan lain boleh banget 😊',
+    'Aku belum bisa meresepkan obat atau menentukan dosis ya, Ma 🙏 Untuk keamanan Mama & si kecil, konsultasikan langsung dengan dokter atau apoteker ya. Butuh bantuan? Hubungi CS WhatsApp MamaBear di https://wa.me/628888695757.',
+    'Maaf ya, Ma, urusan resep dan dosis obat sebaiknya serahkan pada dokter atau apoteker supaya aman. Aku bantu cari info kesehatan lain boleh banget 😊 Kalau perlu bantuan CS, WhatsApp MamaBear di https://wa.me/628888695757 ya.',
   ],
   OUT_OF_SCOPE: [
     'Hmm, topik itu di luar yang bisa aku bantu ya, Ma 🙏 Tapi aku senang bantu seputar kehamilan, menyusui, perawatan bayi, atau produk MamaBear — mau tanya apa lagi?',
     'Waduh, aku belum bisa bantu jawab yang itu, Ma. Yuk tanya-tanya soal ASI, kehamilan, atau produk MamaBear, aku siap bantu kok!',
   ],
   MEDICAL_DIAGNOSIS: [
-    'Aku belum bisa memberikan diagnosis ya, Ma 🙏 Sebaiknya Mama konsultasi langsung ke dokter agar penanganannya tepat dan aman untuk Mama & si kecil 💛',
-    'Untuk diagnosis medis, dokter yang paling tepat memastikannya ya, Ma. Aku bantu cari informasi kesehatan ibu & bayi lainnya boleh banget 😊',
+    'Aku belum bisa memberikan diagnosis ya, Ma 🙏 Sebaiknya Mama konsultasi langsung ke dokter agar penanganannya tepat dan aman untuk Mama & si kecil 💛 Butuh bantuan? Hubungi CS WhatsApp MamaBear di https://wa.me/628888695757.',
+    'Untuk diagnosis medis, dokter yang paling tepat memastikannya ya, Ma. Aku bantu cari informasi kesehatan ibu & bayi lainnya boleh banget 😊 CS kami juga siap di WhatsApp https://wa.me/628888695757 ya.',
   ],
   SPECIFIC_PRESCRIPTION: [
-    'Maaf ya, Ma, aku belum bisa merekomendasikan obat atau dosis spesifik 🙏 Yuk konsultasikan ke dokter atau apoteker supaya aman untuk Mama & si kecil.',
-    'Urusan dosis obat sebaiknya ditanyakan ke dokter atau apoteker ya, Ma 💛 Aku bantu info seputar kesehatan lainnya kapan saja kok.',
+    'Maaf ya, Ma, aku belum bisa merekomendasikan obat atau dosis spesifik 🙏 Yuk konsultasikan ke dokter atau apoteker supaya aman untuk Mama & si kecil. Butuh bantuan? Hubungi CS WhatsApp MamaBear di https://wa.me/628888695757.',
+    'Urusan dosis obat sebaiknya ditanyakan ke dokter atau apoteker ya, Ma 💛 Aku bantu info seputar kesehatan lainnya kapan saja kok. CS kami juga siap di WhatsApp https://wa.me/628888695757 ya.',
   ],
 } as const;
 
