@@ -197,9 +197,7 @@ describe('GuardrailService', () => {
     });
 
     it('should NOT block "apakah pendarahan saat hamil itu bahaya?"', () => {
-      const result = service.check(
-        'apakah pendarahan saat hamil itu bahaya?',
-      );
+      const result = service.check('apakah pendarahan saat hamil itu bahaya?');
       expect(result).toBeNull();
     });
 
@@ -219,9 +217,133 @@ describe('GuardrailService', () => {
     });
 
     it('should STILL block explicit disease diagnosis "Mama menderita diabetes gestasional"', () => {
-      const result = service.checkOutput('Mama menderita diabetes gestasional.');
+      const result = service.checkOutput(
+        'Mama menderita diabetes gestasional.',
+      );
       expect(result).not.toBeNull();
       expect(result?.blockReason).toBe(BLOCK_REASONS.MEDICAL_DIAGNOSIS);
+    });
+  });
+
+  describe('VIMB-135: dosis produk konteks vs resep obat', () => {
+    const productDosageInputs = [
+      'Berapa dosis produk pelancar ASI MamaBear?',
+      'Dosis produk pelancar ASI MamaBear berapa ya?',
+      'Berapa dosis suplemen pelancar ASI yang dianjurkan?',
+      'Dosis yang tepat untuk produk pelancar ASI berapa?',
+      'Dosis yang tepat untuk suplemen MamaBear berapa?',
+      'Kalau produk pelancar ASI itu dosis berapa ya Ma?',
+    ];
+
+    it.each(productDosageInputs)(
+      'should NOT block product dosage question: %s',
+      (input) => {
+        const result = service.check(input);
+        expect(result).toBeNull();
+      },
+    );
+
+    const drugDosageInputs = [
+      'Berapa dosis paracetamol untuk bayi 6 bulan?',
+      'Berapa dosis ibuprofen untuk ibu menyusui?',
+      'Dosis yang aman untuk ibu hamil berapa?',
+      'Dosis yang dianjurkan untuk ibu hamil berapa?',
+    ];
+
+    it.each(drugDosageInputs)(
+      'should STILL block drug dosage question: %s',
+      (input) => {
+        const result = service.check(input);
+        expect(result).not.toBeNull();
+        expect(result?.blockReason).toBe(BLOCK_REASONS.PRESCRIPTION);
+      },
+    );
+
+    it('should NOT block output mentioning product dosage', () => {
+      const result = service.checkOutput(
+        'Dosis produk pelancar ASI MamaBear bisa diberikan sesuai anjuran kemasan ya, Ma.',
+      );
+      expect(result).toBeNull();
+    });
+
+    it('should NOT block output "dosis yang tepat untuk produk"', () => {
+      const result = service.checkOutput(
+        'Dosis yang tepat untuk produk pelancar ASI adalah sesuai anjuran kemasan ya Ma.',
+      );
+      expect(result).toBeNull();
+    });
+
+    it('should STILL block output "dosis yang tepat" tanpa konteks produk', () => {
+      const result = service.checkOutput(
+        'Dosis yang tepat adalah 1 sendok teh setiap 8 jam.',
+      );
+      expect(result).not.toBeNull();
+      expect(result?.blockReason).toBe(BLOCK_REASONS.SPECIFIC_PRESCRIPTION);
+    });
+
+    it('should STILL block output with drug dosage', () => {
+      const result = service.checkOutput(
+        'Dosis paracetamol yang tepat adalah 500 mg.',
+      );
+      expect(result).not.toBeNull();
+      expect(result?.blockReason).toBe(BLOCK_REASONS.SPECIFIC_PRESCRIPTION);
+    });
+  });
+
+  describe('VIMB-135: "gimana" tidak lagi lolos blokir darurat', () => {
+    const urgentEmergencies = [
+      'gimana kalau saya pendarahan banyak sekarang?',
+      'gimana kalau bayi saya kejang terus sekarang?',
+      'kenapa saya sesak napas parah, tolong bantu!',
+    ];
+
+    it.each(urgentEmergencies)(
+      'should block urgent emergency despite "gimana/kenapa": %s',
+      (input) => {
+        const result = service.check(input);
+        expect(result).not.toBeNull();
+        expect(result?.blockReason).toBe(BLOCK_REASONS.EMERGENCY);
+      },
+    );
+
+    it('should still allow educational question without urgency signal', () => {
+      const result = service.check('apakah pendarahan saat hamil itu bahaya?');
+      expect(result).toBeNull();
+    });
+
+    it('should still allow safe "gimana" question about ASI', () => {
+      const result = service.check('Gimana cara memperbanyak ASI?');
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('VIMB-135: pesan blok menyertakan kontak WA CS', () => {
+    it('emergency block message should contain WA CS contact', () => {
+      const result = service.check(
+        'Anak saya kejang-kejang dan tidak sadarkan diri.',
+      );
+      expect(result?.responseMessage).toContain('https://wa.me/628888695757');
+    });
+
+    it('prescription block message should contain WA CS contact', () => {
+      const result = service.check(
+        'Tolong resepkan amoksisilin untuk batuk anak saya.',
+      );
+      expect(result?.responseMessage).toContain('https://wa.me/628888695757');
+    });
+
+    it('diagnosis block message should contain WA CS contact', () => {
+      const result = service.checkOutput(
+        'Mama menderita diabetes gestasional.',
+      );
+      expect(result?.responseMessage).toContain('https://wa.me/628888695757');
+    });
+
+    it('specific prescription block message should contain WA CS contact', () => {
+      const result = service.checkOutput(
+        'Dosis paracetamol yang tepat adalah 500 mg.',
+      );
+      expect(result?.responseMessage).toContain('https://wa.me/628888695757');
     });
   });
 });

@@ -19,6 +19,12 @@ export const BLOCK_REASONS = {
 
 export type BlockReason = (typeof BLOCK_REASONS)[keyof typeof BLOCK_REASONS];
 
+/**
+ * Konteks takaran produk MamaBear — "dosis" di sini bukan resep obat
+ * (VIMB-135). Dipakai sebagai negative lookahead di rule dosis.
+ */
+const PRODUCT_DOSAGE_CONTEXT = String.raw`(?!\s*(?:yang\s+)?(?:tepat|benar|aman|sesuai|dianjurkan|harus|perlu)?\s*(?:untuk\s+)?(?:produk|pelancar|mamabear|suplemen|fish\s*oil|tbm)\b)`;
+
 // ─────────────────────────────────────────────────────────────
 // 1. Gejala Darurat Medis
 // ─────────────────────────────────────────────────────────────
@@ -117,8 +123,12 @@ export const PRESCRIPTION_KEYWORDS: RegExp[] = [
   /kasih\s*(tahu\s*)?resep\s*obat/i,
 
   // Dosis — diperluas
-  /berapa\s*(dosis|mg|ml|tablet|kapsul|sendok|tetes)/i,
-  /dosis\s*(yang\s*)?(tepat|benar|aman|dianjurkan|harus|perlu)/i,
+  // Kecualikan konteks takaran produk MamaBear (bukan resep obat)
+  /berapa\s*(dosis|mg|ml|tablet|kapsul|sendok|tetes)(?!\s*(?:untuk\s+)?(?:produk|pelancar|mamabear|suplemen|fish\s*oil|tbm)\b)/i,
+  new RegExp(
+    `dosis\\s*(yang\\s*)?(tepat|benar|aman|dianjurkan|harus|perlu)${PRODUCT_DOSAGE_CONTEXT}`,
+    'i',
+  ),
   /takaran\s*(obat|minum|konsumsi)/i,
   /anjuran\s*dosis/i,
   /berapa\s*kali\s*(minum|konsumsi|makan)\s*obat/i,
@@ -299,7 +309,6 @@ export const OUTPUT_MEDICAL_DIAGNOSIS_KEYWORDS: RegExp[] = [
   /menunjukkan\s*(adanya|bahwa)\s*(anda|mama|ibu)\s*(mengalami|menderita)/i,
 ];
 
-
 // ─────────────────────────────────────────────────────────────
 // 5. Rekomendasi Obat Spesifik (Output Guardrail)
 // ─────────────────────────────────────────────────────────────
@@ -324,9 +333,13 @@ export const OUTPUT_PRESCRIPTION_KEYWORDS: RegExp[] = [
   /(paracetamol|parasetamol|ibuprofen|amoksisilin|asam\s*mefenamat|eritromisin|metronidazol|klindamisin)\s*(\d+\s*mg|diminum|dikonsumsi|dosis)/i,
   /minum\s*(paracetamol|parasetamol|ibuprofen|amoksisilin|antibiotik|asam\s*mefenamat)/i,
 
-  // Dosis eksplisit
-  /\bdosis\b/i,
-  /dosis\s*(yang\s*)?(tepat|aman|dianjurkan|sesuai|benar)/i,
+  // Dosis eksplisit — kecuali konteks takaran produk MamaBear
+  // (mis. "dosis produk pelancar ASI MamaBear" adalah takaran produk, bukan resep obat)
+  new RegExp(`\\bdosis\\b${PRODUCT_DOSAGE_CONTEXT}`, 'i'),
+  new RegExp(
+    `dosis\\s*(yang\\s*)?(tepat|aman|dianjurkan|sesuai|benar)${PRODUCT_DOSAGE_CONTEXT}`,
+    'i',
+  ),
   /\d+\s*mg\s*(per|setiap|tiap)\s*(hari|dosis|minum)/i,
 
   // Anjuran frekuensi / jadwal minum obat
