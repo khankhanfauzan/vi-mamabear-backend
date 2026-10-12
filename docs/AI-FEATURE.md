@@ -15,12 +15,12 @@ tidak kontekstual.
 
 Asisten kesehatan berbasis LLM menjawab kebutuhan itu, tapi membawa risiko spesifik:
 
-| Risiko | Mengapa berbahaya | Solusi di kode ini |
-|---|---|---|
-| AI memberi diagnosis / dosis obat | Domain medis = risiko keselamatan pengguna | Guardrail medis input + output, system prompt berbatas ketat, disclaimer otomatis |
+| Risiko                                | Mengapa berbahaya                               | Solusi di kode ini                                                                                                          |
+| ------------------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| AI memberi diagnosis / dosis obat     | Domain medis = risiko keselamatan pengguna      | Guardrail medis input + output, system prompt berbatas ketat, disclaimer otomatis                                           |
 | AI mengarang produk yang tidak dijual | Merusak kepercayaan dan berpotensi klaim keliru | Konteks produk hanya dari katalog aktif, guardrail keberadaan produk, ekstraksi `[PRODUCT_IDS]` yang divalidasi balik ke DB |
-| LLM provider down / rate limit | Fitur mati total | Dua model (primary + fallback) di OpenRouter dengan retry otomatis |
-| Pertanyaan ambigu dijawab asal | Rekomendasi tidak berguna, user kecewa | Mekanisme klarifikasi `[CLARIFY]` dengan aturan anti-loop |
+| LLM provider down / rate limit        | Fitur mati total                                | Dua model (primary + fallback) di OpenRouter dengan retry otomatis                                                          |
+| Pertanyaan ambigu dijawab asal        | Rekomendasi tidak berguna, user kecewa          | Mekanisme klarifikasi `[CLARIFY]` dengan aturan anti-loop                                                                   |
 
 LLM dipilih lewat OpenRouter (bukan provider tunggal) karena memberi akses ke
 banyak model gratis sekaligus jalur fallback tanpa mengubah kode.
@@ -54,20 +54,20 @@ AiService.chat()
 
 Endpoint (semua di balik `JwtAuthGuard`):
 
-| Method | Endpoint | Fungsi |
-|---|---|---|
-| `POST` | `/ai/chat` | Kirim pesan (dilindungi `UserThrottlerGuard`) |
-| `GET` | `/ai/conversations` | Daftar percakapan user |
-| `GET` | `/ai/history/:conversationId` | Riwayat pesan |
-| `DELETE` | `/ai/conversations/:conversationId` | Hapus percakapan |
+| Method   | Endpoint                            | Fungsi                                        |
+| -------- | ----------------------------------- | --------------------------------------------- |
+| `POST`   | `/ai/chat`                          | Kirim pesan (dilindungi `UserThrottlerGuard`) |
+| `GET`    | `/ai/conversations`                 | Daftar percakapan user                        |
+| `GET`    | `/ai/history/:conversationId`       | Riwayat pesan                                 |
+| `DELETE` | `/ai/conversations/:conversationId` | Hapus percakapan                              |
 
 Model OpenRouter:
 
-| Variabel | Default di kode |
-|---|---|
-| `OPENROUTER_MODEL` | `poolside/laguna-xs-2.1:free` |
-| `OPENROUTER_FALLBACK_MODEL` | `liquid/lfm-2.5-2.6b:free` |
-| `OPENROUTER_TIMEOUT_MS` | `13000` |
+| Variabel                    | Default di kode               |
+| --------------------------- | ----------------------------- |
+| `OPENROUTER_MODEL`          | `poolside/laguna-xs-2.1:free` |
+| `OPENROUTER_FALLBACK_MODEL` | `liquid/lfm-2.5-2.6b:free`    |
+| `OPENROUTER_TIMEOUT_MS`     | `13000`                       |
 
 Fallback dipicu untuk HTTP 429, 502, 503. Error lain (401/403/timeout/dst)
 langsung dilempar tanpa retry. Jika primary dan fallback sama-sama gagal, user menerima
@@ -78,17 +78,64 @@ komposisi, deskripsi) ditempel ke system prompt sebagai `[DATA_PRODUK_AKTIF]`.
 LLM wajib memilih hanya dari daftar itu dan menandainya dengan tag
 `[PRODUCT_IDS: id]` di baris terakhir; tag dilepas dari teks sebelum dikirim ke user.
 
+## Flowchart Orkestrasi Chatbot AI
+
+Alur lengkap pemrosesan satu pesan chat (`POST /ai/chat` → `AiService.chat()`):
+
+```mermaid
+flowchart TD
+    A[Pesan user] --> B[Validasi panjang input<br/>maks 1000 karakter]
+    B --> C[Input Guardrail<br/>keyword medis: darurat / resep / out-of-scope]
+    C -->|BLOCKED| Z[Simpan pesan blocked ke DB<br/>return respons aman<br/>tanpa memanggil LLM]
+    C -->|lolos| D[Product Scope Guardrail<br/>ekstraksi query produk]
+    D -->|ada query| E[Cek katalog aktif di DB<br/>nama/tag literal + embedding pgvector<br/>skor >= PRODUCT_MATCH_THRESHOLD]
+    E -->|tidak ada / katalog gagal| Z
+    E -->|lolos / tanpa query| F[Bangun system prompt<br/>riwayat 10 pesan aman +<br/>DATA_PRODUK_AKTIF dari DB]
+    F --> G[LLM primary via OpenRouter]
+    G -->|429 / 502 / 503 / timeout| H[LLM fallback model]
+    G -->|sukses| I[Output Guardrail<br/>deteksi diagnosis / resep di jawaban]
+    H -->|gagal juga| ERR[HTTP 502<br/>AI sedang sibuk]
+    H -->|sukses| I
+    I -->|BLOCKED| Z2[Simpan respons pengganti aman<br/>ke DB, reply null]
+    I -->|lolos| J{Prefix [CLARIFY]?}
+    J -->|ya| K[Return tipe clarification<br/>tanpa ekstraksi produk]
+    J -->|tidak| L[Ekstraksi tag PRODUCT_IDS<br/>dari jawaban LLM]
+    L -->|tag tidak ada| M[Fallback 1: nama produk di teks]
+    M -->|tidak cocok| N[Fallback 2: semantic search<br/>embedding produk di DB<br/>top 3, skor >= 0.22]
+    L -->|ada tag| O[Validasi ID ke DB]
+    K --> SAVE[(Simpan ke tabel<br/>AiConversation / AiMessage)]
+    N --> P[Sanitasi teks jawaban]
+    O --> P
+    P --> Q[Truncation<br/>maks 500 karakter]
+    Q --> R[Append disclaimer edukatif]
+    R --> S[Simpan ke DB + metadata produk]
+    Z --> SAVE
+    Z2 --> SAVE
+    SAVE --> T[Response ke user]
+```
+
+Catatan penting:
+
+- Urutan guardrail: **input → keberadaan produk → output**. Semua blok disimpan
+  ke DB dengan flag `blocked: true` untuk audit dan tidak ikut konteks prompt.
+- "DB embedding" = verifikasi produk memakai kolom `Product.embedding`
+  (pgvector cosine); semantic fallback di akhir juga memakai tabel yang sama.
+- "Fallback" ada dua tingkat: model LLM cadangan (OpenRouter) dan fallback
+  pencocokan produk (tag → nama → semantic search).
+- Truncation dan disclaimer adalah langkah terakhir sebelum jawaban disimpan
+  dan dikembalikan ke user.
+
 ## Mekanisme Guardrail Medis
 
 ### 1. Input guardrail (`GuardrailService.check`)
 
 Deterministik berbasis keyword/regex, dijalankan sebelum LLM. Urutan prioritas:
 
-| Prioritas | Block reason | Contoh pemicu | Respons |
-|---|---|---|---|
-| 1 | `EMERGENCY_MEDICAL_QUERY` | "pendarahan hebat sekarang", "kejang" | Arahkan ke IGD/dokter |
-| 2 | `PRESCRIPTION_REQUEST` | minta resep/dosis obat | Sarankan konsultasi dokter |
-| 3 | `OUT_OF_SCOPE` | di luar kesehatan ibu & bayi | Redirect ramah ke scope |
+| Prioritas | Block reason              | Contoh pemicu                         | Respons                    |
+| --------- | ------------------------- | ------------------------------------- | -------------------------- |
+| 1         | `EMERGENCY_MEDICAL_QUERY` | "pendarahan hebat sekarang", "kejang" | Arahkan ke IGD/dokter      |
+| 2         | `PRESCRIPTION_REQUEST`    | minta resep/dosis obat                | Sarankan konsultasi dokter |
+| 3         | `OUT_OF_SCOPE`            | di luar kesehatan ibu & bayi          | Redirect ramah ke scope    |
 
 Pengecualian penting: pola **edukatif/hypotetikal** (mis. "kalau ada pendarahan
 trimester 3 normal ga?") melewati blok darurat sehingga tetap dijawab secara

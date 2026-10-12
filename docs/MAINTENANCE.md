@@ -1,0 +1,180 @@
+# Panduan Pemeliharaan Backend — MamaBear
+
+Operasional backend MamaBear: deploy, log, migrasi database, reset seed, dan
+monitoring. Untuk fitur AI lihat [`AI-FEATURE.md`](AI-FEATURE.md), untuk setup
+lokal lihat [`../README.md`](../README.md).
+
+## 1. Deploy
+
+### Opsi A: Docker (disarankan)
+
+Repo menyediakan `Dockerfile` (multi-stage, Node 20 Alpine, user non-root,
+`dumb-init`) dan `docker-compose.yml` (services: `db` pgvector/pg16, `mailhog`,
+`app`).
+
+```bash
+# build image + jalankan seluruh service
+docker compose up -d --build
+
+# jalankan hanya database & mailhog (app jalan lokal)
+docker compose up -d db mailhog
+
+# lihat status & log aplikasi
+docker compose ps
+docker compose logs -f app
+```
+
+Konfigurasi container memakai file `.env` lokal (`env_file` di compose).
+Migrasi sebelum start bila mengubah skema:
+
+```bash
+docker compose exec app npx prisma migrate deploy
+```
+
+### Opsi B: VPS dengan PM2
+
+PM2 tidak terpasang di repo (tidak ada `ecosystem.config.js`), jadi jalankan
+perintah secara eksplisit:
+
+```bash
+# di server, setelah clone + npm install + .env terisi
+npm run build              # prisma generate + nest build
+npx prisma migrate deploy  # terapkan migrasi yang belum jalan
+
+pm2 start dist/main --name mamabear-backend
+pm2 status
+pm2 logs mamabear-backend
+pm2 save                   # persist daftar proses
+pm2 startup                # auto-start saat server reboot (ikuti perintah yang dicetak)
+```
+
+Update ke versi baru:
+
+```bash
+git pull
+npm ci
+npm run build
+npx prisma migrate deploy
+pm2 restart mamabear-backend
+```
+
+Catatan: file `.env` dibaca oleh `dotenv` saat aplikasi mulai — setelah ubah
+env, **restart** proses (PM2/container) agar nilai baru terbaca.
+
+## 2. Log Aplikasi (Pino)
+
+Logger dikonfigurasi di `src/common/logger/logger.module.ts`:
+
+| Aspek         | Perilaku                                                                        |
+| ------------- | ------------------------------------------------------------------------------- |
+| Level         | `LOG_LEVEL` di `.env` (default `info`)                                          |
+| Output konsol | `pino-pretty` (warna, satu baris) — untuk mode dev                              |
+| Output file   | `pino-roll` → `./logs/app-YYYY-MM-DD.log`, rotasi harian, batas 10 MB per file  |
+| Request log   | Semua request di-log kecuali `GET /health`                                      |
+| Korelasi      | Header `x-request-id` dipakai sebagai request id (bisa diteruskan dari gateway) |
+| Redaksi       | `req.headers.authorization` dan `req.body.password` dihapus dari log            |
+
+```bash
+# tail log hari ini
+tail -f logs/app-$(date +%F).log
+
+# cari error 24 jam terakhir
+grep -h '"level":"error"' logs/app-*.log | tail -50
+```
+
+Bersihkan `logs/` berkala (file `.log` tidak masuk Git). Di Docker, folder
+`logs/` dibuat oleh image dan dimiliki user aplikasi.
+
+## 3. Migrasi Database (Prisma)
+
+Struktur migrasi: `prisma/migrations/`.
+
+```bash
+# development: buat migrasi baru dari perubahan schema.prisma (interaktif)
+npx prisma migrate dev --name nama-perubahan
+
+# production / staging: terapkan migrasi yang belum jalan (non-destruktif)
+npx prisma migrate deploy
+
+# atau sekalian migrate + start
+npm run start:migrate
+```
+
+Aturan operasional:
+
+- **Jangan edit file migrasi yang sudah ter-apply** — buat migrasi baru.
+- Selalu jalankan `migrate deploy` sebelum menjalankan versi kode baru yang
+  berisi perubahan skema (urutan: deploy kode → migrate deploy → restart, atau
+  pakai `start:migrate`).
+- CI (`ci-deploy.yml`) menjalankan `prisma migrate deploy` + `prisma generate`
+  sebelum build dan smoke test.
+- Backup sebelum migrasi besar:
+
+  ```bash
+  docker compose exec db pg_dump -U satria mamabear > backup-$(date +%F).sql
+  ```
+
+## 4. Reset & Seed Data
+
+Seed (`npm run seed` → `prisma/seed.ts`) **bersifat create-based, bukan
+idempoten** — menjalankan ulang pada database yang sudah berisi akan membuat
+duplikat (kategori, produk, review). Karena itu seed hanya untuk database
+kosong/fresh.
+
+```bash
+# cara paling aman: reset skema + seed otomatis dalam satu langkah
+# PERINGATAN: menghapus SEMUA data di database
+npx prisma migrate reset
+
+# atau manual: kosongkan database, migrate ulang, lalu seed
+docker compose exec db psql -U satria -d postgres \
+  -c 'DROP DATABASE mamabear;' -c 'CREATE DATABASE mamabear OWNER satria;'
+npx prisma migrate deploy
+npm run seed
+```
+
+Prasyarat seed:
+
+- `OPENROUTER_API_KEY` valid (generate embedding produk, retry 5× per produk)
+- `CLOUDINARY_*` valid (upload gambar produk). Jika cloud name disabled/401,
+  seed **gagal** — perbaiki kredensial, jangan ditelan diam-diam.
+
+## 5. Monitoring & Pemeriksaan Berkala
+
+### Kesehatan aplikasi
+
+```bash
+curl http://localhost:3001/api/health   # harus success: true
+```
+
+### Kesehatan database
+
+```bash
+# koneksi aktif & query yang sedang jalan
+docker compose exec db psql -U satria -d mamabear \
+  -c "SELECT pid, state, query_start, left(query,80) FROM pg_stat_activity WHERE datname='mamabear';"
+
+# ukuran tabel & blok yang belum di-vacuum
+docker compose exec db psql -U satria -d mamabear \
+  -c "SELECT relname, n_live_tup, last_autovacuum FROM pg_stat_user_tables ORDER BY n_live_tup DESC LIMIT 10;"
+
+# pemakaian disk database
+docker compose exec db psql -U satria -d mamabear \
+  -c "SELECT pg_size_pretty(pg_database_size('mamabear'));"
+```
+
+Checklist harian/mingguan:
+
+- [ ] `docker compose ps` / `pm2 status` — service up
+- [ ] `GET /api/health` merespons 200
+- [ ] Tidak ada error bertubi di `logs/app-*.log` (terutama guardrail/LLM/DB)
+- [ ] Kapasitas disk (DB + `logs/` + backup)
+- [ ] CI terakhir hijau di GitHub Actions
+- [ ] Backup database tersedia dan bisa di-restore (uji berkala)
+
+### Insiden yang pernah terjadi
+
+- **Seed gagal `cloud_name is disabled` (HTTP 401)** — kredensial Cloudinary di
+  secret CI/.env menunjuk cloud yang dinonaktifkan. Perbaikinya mengganti
+  kredensial, bukan mengubah seed. Kasus ini menggagalkan semua run CI di step
+  `Run seeder`.
