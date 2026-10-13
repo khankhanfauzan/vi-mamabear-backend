@@ -225,9 +225,6 @@ describe('AiService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data?.reply).toContain('AI response');
-      expect(result.data?.reply).toContain(
-        'Catatan: Informasi ini bersifat edukatif',
-      );
       expect(openRouter.chat).toHaveBeenCalled();
       expect(aiRepo.createMessage).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -237,7 +234,7 @@ describe('AiService', () => {
       );
     });
 
-    it('should append disclaimer only once even when products are recommended', async () => {
+    it('should not append disclaimer even when products are recommended', async () => {
       guardrail.check.mockReturnValue(null);
       guardrail.checkOutput.mockReturnValue(null);
 
@@ -278,11 +275,9 @@ describe('AiService', () => {
       expect(result.success).toBe(true);
       expect(result.data?.products).toHaveLength(1);
       expect(result.data?.reply).not.toContain('[PRODUCT_IDS:');
-      const disclaimerMatches =
-        result.data?.reply?.match(
-          /Catatan: Informasi ini bersifat edukatif/g,
-        ) || [];
-      expect(disclaimerMatches).toHaveLength(1);
+      expect(result.data?.reply).not.toContain(
+        'Catatan: Informasi ini bersifat edukatif',
+      );
       expect(aiRepo.createMessage).toHaveBeenCalledWith(
         expect.objectContaining({
           role: AiRole.ASSISTANT,
@@ -438,11 +433,10 @@ Yes, ID 5 is the capsule product: "MamaBear ASI Booster 30 Kapsul - Pelancar ASI
       expect(result.data?.products).toHaveLength(2);
     });
 
-    
     it('should extract product ID by name mention if tags and IDs are missing', async () => {
       guardrail.check.mockReturnValue(null);
       guardrail.checkOutput.mockReturnValue(null);
-      
+
       aiRepo.countConversationsByUser.mockResolvedValue(1);
       aiRepo.createConversation.mockResolvedValue({
         id: 'conv-1',
@@ -477,7 +471,8 @@ Yes, ID 5 is the capsule product: "MamaBear ASI Booster 30 Kapsul - Pelancar ASI
       ]);
 
       openRouter.chat.mockResolvedValue({
-        content: 'Ya, Ma! Ada produk yang mirip dengan kue: **MamaBear Kukis Almond Oat** ini camilan superfood.',
+        content:
+          'Ya, Ma! Ada produk yang mirip dengan kue: **MamaBear Kukis Almond Oat** ini camilan superfood.',
         tokensUsed: 15,
         model: 'mock-model',
       });
