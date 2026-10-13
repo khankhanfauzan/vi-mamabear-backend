@@ -13,6 +13,7 @@ ibu & bayi.
 Dokumentasi terkait:
 
 - Fitur AI: [`docs/AI-FEATURE.md`](docs/AI-FEATURE.md)
+- Panduan pemeliharaan (deploy, log, migrasi DB): [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md)
 - Guardrail produk: [`docs/product-guardrail.md`](docs/product-guardrail.md)
 - Environment variable: [`.env.example`](.env.example)
 
@@ -24,13 +25,20 @@ Dokumentasi terkait:
 
 ## Setup Lokal
 
-1. Install dependencies:
+1. Clone repository:
+
+   ```bash
+   git clone git@github.com:khankhanfauzan/vi-mamabear-backend.git
+   cd vi-mamabear-backend
+   ```
+
+2. Install dependencies:
 
    ```bash
    npm install
    ```
 
-2. Jalankan service pendukung (PostgreSQL + MailHog):
+3. Jalankan service pendukung (PostgreSQL + MailHog):
 
    ```bash
    docker compose up -d db mailhog
@@ -39,7 +47,7 @@ Dokumentasi terkait:
    - PostgreSQL: `localhost:5432` (user/password/db: `satria`/`satria`/`mamabear`)
    - MailHog SMTP: `localhost:1025`, web UI: `http://localhost:8025`
 
-3. Salin template environment lalu isi sesuai kebutuhan (minimal `DATABASE_URL`,
+4. Salin template environment lalu isi sesuai kebutuhan (minimal `DATABASE_URL`,
    JWT secrets, dan `OPENROUTER_API_KEY` untuk fitur AI):
 
    ```bash
@@ -48,13 +56,13 @@ Dokumentasi terkait:
 
    Daftar lengkap variabel dan fungsinya ada di `.env.example`.
 
-4. Jalankan migrasi database:
+5. Jalankan migrasi database:
 
    ```bash
    npx prisma migrate deploy
    ```
 
-5. (Opsional) Seed data produk, user, kategori, review, dan settings.
+6. (Opsional) Seed data produk, user, kategori, review, dan settings.
    Membutuhkan `OPENROUTER_API_KEY` (embedding produk) dan kredensial Cloudinary
    yang valid (upload gambar):
 
