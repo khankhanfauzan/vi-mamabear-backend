@@ -1,6 +1,9 @@
-# Design Note: AI-Powered Health Assistant — MamaBear Backend
+---
+title: Arsitektur Sistem
+description: Komponen backend MamaBear (controller, service, repository), data model Prisma, endpoint AI, penanganan error, rate limiting, dan strategi pengujian.
+---
 
-## Overview
+## Ringkasan
 
 MamaBear adalah platform e-commerce yang fokus pada produk ibu dan bayi. Sprint 2 ini menambahkan **fitur AI Assistant** yang bisa membantu pengguna dengan pertanyaan seputar kesehatan ibu hamil, menyusui, dan perawatan bayi — dengan **guardrail medis** agar jawaban tetap aman dan tidak berbahaya.
 
@@ -13,7 +16,7 @@ MamaBear adalah platform e-commerce yang fokus pada produk ibu dan bayi. Sprint 
 
 ## Architecture
 
-```
+```text
 ┌─────────────┐     ┌──────────────────┐     ┌──────────────┐
 │  Frontend   │────▶│  Backend API     │────▶│  OpenRouter   │
 │  (Chat UI)  │◀────│  (NestJS Module) │◀────│  (LLM API)   │
@@ -122,7 +125,7 @@ Guardrail adalah lapisan keamanan yang memastikan AI tidak memberikan informasi 
 
 ### System Prompt
 
-```
+```text
 Kamu adalah asisten kesehatan untuk MamaBear, platform produk ibu dan bayi.
 
 Batasan kamu:
@@ -149,7 +152,7 @@ OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 
 ### Request Flow
 
-```
+```text
 User Message
     │
     ▼
@@ -190,7 +193,7 @@ AI_MAX_INPUT_LENGTH=1000
 
 ## File Structure
 
-```
+```text
 src/ai/
 ├── ai.module.ts
 ├── ai.controller.ts

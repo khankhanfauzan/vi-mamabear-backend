@@ -6,7 +6,7 @@ import { GuardrailResult } from './guardrail.service';
 import { pickHumanizedMessage } from './guardrail-messages';
 import { extractProductQueries, matchesProductIdentity } from './product-scope';
 
-// Provisional until the real-catalog calibration described in docs/product-guardrail.md.
+// Provisional until the real-catalog calibration described in docs/product-guardrail.mdx.
 export const DEFAULT_PRODUCT_MATCH_THRESHOLD = 0.75;
 type CatalogProduct = { id: number; name: string; tags: string[] };
 type ProductMatch = CatalogProduct & { similarity: number };
