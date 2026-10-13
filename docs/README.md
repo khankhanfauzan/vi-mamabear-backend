@@ -12,10 +12,10 @@ ibu & bayi.
 
 Dokumentasi terkait:
 
-- Fitur AI: [`docs/AI-FEATURE.md`](docs/AI-FEATURE.md)
-- Panduan pemeliharaan (deploy, log, migrasi DB): [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md)
-- Guardrail produk: [`docs/product-guardrail.md`](docs/product-guardrail.md)
-- Environment variable: [`.env.example`](.env.example)
+- Fitur AI: [`AI-FEATURE.md`](AI-FEATURE.md)
+- Panduan pemeliharaan (deploy, log, migrasi DB): [`MAINTENANCE.md`](MAINTENANCE.md)
+- Guardrail produk: [`product-guardrail.md`](product-guardrail.md)
+- Environment variable: [`../.env.example`](../.env.example)
 
 ## Prasyarat
 

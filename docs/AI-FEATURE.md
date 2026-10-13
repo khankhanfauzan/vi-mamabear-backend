@@ -2,8 +2,8 @@
 
 Dokumen ini menjelaskan fitur AI Assistant secara spesifik: motivasi, arsitektur,
 guardrail, operasi data embedding, known limitations, dan rencana pengembangan.
-Konteks desain awal ada di [`DESIGN-NOTE.md`](../DESIGN-NOTE.md) (Sprint 2);
-detail kebijakan guardrail produk ada di [`docs/product-guardrail.md`](product-guardrail.md).
+Konteks desain awal ada di [`DESIGN-NOTE.md`](DESIGN-NOTE.md) (Sprint 2);
+detail kebijakan guardrail produk ada di [`product-guardrail.md`](product-guardrail.md).
 
 ## Problem & Alasan Solusi
 

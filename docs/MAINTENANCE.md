@@ -2,7 +2,7 @@
 
 Operasional backend MamaBear: deploy, log, migrasi database, reset seed, dan
 monitoring. Untuk fitur AI lihat [`AI-FEATURE.md`](AI-FEATURE.md), untuk setup
-lokal lihat [`../README.md`](../README.md).
+lokal lihat [`README.md`](README.md).
 
 ## 1. Deploy
 
