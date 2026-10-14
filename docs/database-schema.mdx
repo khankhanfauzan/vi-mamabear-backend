@@ -1,0 +1,596 @@
+---
+title: Database & Skema
+description: Desain basis data MamaBear — tabel, kolom, relasi, skema migrasi, dan strategi seed data.
+---
+
+Halaman ini mendokumentasikan seluruh skema basis data yang digunakan backend MamaBear (PostgreSQL + Prisma ORM), termasuk entitas utama, relasi foreign key, index, dan tipe enum yang dipakai.
+
+<Callout type="info">
+  Semua model didefinisikan di `prisma/schema.prisma`. Generated client berada di `src/generated/prisma`.
+</Callout>
+
+## Base Data
+
+### User
+
+User terdaftar dengan role `USER`, `ADMIN`, atau `SUPERADMIN`. Menyimpan kredensial, verifikasi email, serta token untuk refresh/logout dan password reset.
+
+```prisma
+model User {
+  id                      String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                   String             @unique
+  hashedPassword          String
+  name                    String
+  phone                   String
+  role                    Role               @default(USER)
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime?          @updatedAt
+  reviews                 Review[]
+  isVerified              Boolean            @default(false)
+  isBlocked               Boolean            @default(false)
+  verificationToken       String?
+  verificationTokenExpiry DateTime?
+  resetToken              String?
+  resetTokenExpiry        DateTime?
+  refreshToken            String?
+  refreshTokenExpiry      DateTime?
+  carts                   Cart[]
+  orders                  Order[]
+  address                 Address[]
+  activityLogs            AdminActivityLog[]
+  aiConversations         AiConversation[]
+  promoUsages             PromoUsage[]
+}
+```
+
+| Field | Tipe | Keterangan |
+| :--- | :--- | :--- |
+| `id` | UUID | Primary key auto-gen (`gen_random_uuid()`) |
+| `email` | String | Unik global, login credential |
+| `hashedPassword` | String | Password ter-hash (bcrypt) |
+| `role` | Enum | `USER` / `ADMIN` / `SUPERADMIN` |
+| `isVerified` | Boolean | Status verifikasi email |
+| `isBlocked` | Boolean | Status akun diblokir admin |
+| `verificationToken` | String? | Token verifikasi email (expiring) |
+| `resetToken` | String? | Token reset password (expiring) |
+| `refreshToken` | String? | Hash refresh token JWT di DB |
+| `refreshTokenExpiry` | DateTime? | Kadaluwarsa refresh token |
+
+Relasi: satu user bisa punya banyak **keranjang**, **order**, **alamat**, **ulasan**, **percakapan AI**, dan **penggunaan promo**.
+
+### Product
+
+Produk dengan dukungan multi-varian, gambar (Cloudinary), tag, SEO fields, dan semantic search via embedding (pgvector).
+
+```prisma
+model Product {
+  id                Int                          @id @default(autoincrement())
+  name              String
+  slug              String                       @unique
+  isActive          Boolean                      @default(true)
+  totalSold         Int                          @default(0)
+  categoryId        Int?
+  highlightId       Int?
+  images            Image[]
+  variants          ProductVariant[]
+  reviews           Review[]
+  tags              String[]                     @default([])
+  description       String?
+  ingredients       String?
+  usageInstructions String?
+  embedding         Unsupported("vector(1024)")?
+  cartItems         CartItem[]
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime?                    @updatedAt
+  inOrderItems      OrderItem[]
+  category          Category?
+  highlight         Highlight?
+  metaTitle         String?
+  metaDescription   String?
+}
+```
+
+| Field | Tipe | Keterangan |
+| :--- | :--- | :--- |
+| `id` | Int | Auto-increment PK |
+| `slug` | String | Unik global, URL-friendly |
+| `isActive` | Boolean | Flag publish/unpublish |
+| `totalSold` | Int | Jumlah terjual (counter) |
+| `tags` | String[] | Array tag produk |
+| `embedding` | vector(1024)? | Embedding vektor untuk similarity search |
+| `categoryId` | Int? FK → Category | Kategori produk |
+| `highlightId` | Int? FK → Highlight | Produk dalam banner highlight |
+
+### ProductVariant
+
+Varian produk (ukuran, berat, dll) dengan harga mandiri, stok, SKU, dan diskon per-variant.
+
+```prisma
+model ProductVariant {
+  id         Int         @id @default(autoincrement())
+  productId  Int
+  name       String
+  images     Image[]
+  priceIdr   Decimal     @db.Decimal(10, 2)
+  discount   Discount?
+  weightG    Int
+  sku        String?
+  stock      Int         @default(0)
+  sortOrder  Int         @default(0)
+  cartItems  CartItem[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime?   @updatedAt
+  orderItems OrderItem[]
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+```
+
+@@unique([productId, sortOrder]) — mencegah duplikasi urutan varian dalam satu produk.
+
+On-delete cascade ke `Product` agar varian ikut terhapus saat produk dihapus.
+
+### Discount
+
+Diskon spesifik per variant (persentase atau nominal tetap).
+
+```prisma
+model Discount {
+  id        Int            @id @default(autoincrement())
+  variantId Int            @unique
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  amount    Decimal        @db.Decimal(12, 2)
+  isPercent Boolean        @default(false)
+  startedAt DateTime       @default(now())
+  endsAt    DateTime
+}
+```
+
+Satu diskon per variant (`@unique`). Kadaluwarsa otomatis berdasarkan `endsAt`.
+
+## Keranjang & Checkout
+
+### Cart
+
+Keranjang belanja yang mendukung guest (session-based) dan logged-in user (account-based). Menyimpan snapshot harga + info promo/courier yang di-calculate saat checkout.
+
+```prisma
+model Cart {
+  id                        String  @id @default(uuid(7)) @db.Uuid
+  userId                    String? @db.Uuid
+  sessionId                 String? @unique
+  subtotalIdr               Int     @default(0)
+  taxIdr                    Int     @default(0)
+  promoCodeId               Int?
+  promoCode                 PromoCode?
+  promoCodeString           String?
+  productDiscountIdr        Int     @default(0)
+  shippingDiscountIdr       Int     @default(0)
+  shippingCostIdr           Int     @default(0)
+  courierName               String?
+  courierCode               String?
+  shippingMethod            String?
+  items                     CartItem[]
+  orderId                   String? @unique
+  user                      User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  expiresAt                 DateTime?
+}
+```
+
+@@index([userId]), @@index([sessionId]), @@index([expiresAt]) — query cepat per user, per session, dan expired cart cleanup.
+
+Saat checkout sukses, keranjang dikaitkan dengan `orderId` (@unique) lalu status berubah permanen.
+
+### CartItem
+
+Item dalam keranjang. Unique composite pada `(cartId, productId, variantId)` — satu item hanya boleh ada sekali per kombinasi itu.
+
+```prisma
+model CartItem {
+  id        String  @id @default(uuid(7)) @db.Uuid
+  cartId    String  @db.Uuid
+  productId Int
+  variantId Int
+  quantity  Int     @default(1)
+  price     Decimal @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+  cart      Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+}
+```
+
+`price` adalah snapshot harga variant saat ditambahkan ke keranjang — tidak berubah meski harga variant berubah nanti.
+
+## Order & Pembayaran
+
+### OrderStatus (Enum)
+
+Tahapan lifecycle order dari pending hingga selesai/ditolak.
+
+```prisma
+enum OrderStatus {
+  PAYMENT_PENDING  // Midtrans pending
+  PAYMENT_PAID     // Midtrans success
+  PAYMENT_FAILED   // Midtrans failed
+  CONFIRMED        // Konfirmasi pembayaran manual oleh admin
+  PROCESSED        // Packing & assign kurir
+  SENDING          // Dalam transit
+  RECEIVED         // Diterima pelanggan
+  COMPLETED        // Selesai
+  CANCELLED        // Dibatalkan
+  REFUNDED         // Dikembalikan dana
+  RETURNED         // Barang dikembalikan
+}
+```
+
+### Order
+
+Order hasil checkout. Menyalin semua info pricing, promo, dan ongkir dari Cart saat checkout dilakukan.
+
+```prisma
+model Order {
+  id                        String      @id @default(uuid(7)) @db.Uuid
+  userId                    String      @db.Uuid
+  orderItems                OrderItem[]
+  status                    OrderStatus @default(PAYMENT_PENDING)
+  receivedExpiresAt         DateTime?
+  notes                     String?
+  promoCodeId               Int?
+  promoCodeRel              PromoCode?
+  promoCode                 String?
+  productDiscountIdr        Int         @default(0)
+  shippingDiscountIdr       Int         @default(0)
+  subtotalIdr               Int         @default(0)
+  taxIdr                    Int         @default(0)
+  shippingCostIdr           Int         @default(0)
+  courierName               String?
+  courierCode               String?
+  shippingMethod            String?
+  paymentRedirectUrl        String?
+  grandTotalIdr             Int         @default(0)
+  trackingNumber            String?
+  paymentMethod             String?
+  createdAt                 DateTime    @default(now())
+  updatedAt                 DateTime    @updatedAt
+  user                      User        @relation(fields: [userId], references: [id])
+  orderStatusHistory        OrderStatusHistory[]
+  shippingAddress           OrderAddress?
+  promoUsages               PromoUsage[]
+}
+```
+
+### OrderItem
+
+Detail item dalam order. Mirip CartItem tapi tied ke order.
+
+```prisma
+model OrderItem {
+  id        String  @id @default(uuid(7)) @db.Uuid
+  orderId   String  @db.Uuid
+  productId Int
+  variantId Int
+  quantity  Int     @default(1)
+  price     Decimal @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+  order     Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product        @relation(fields: [productId], references: [id])
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+}
+```
+
+@@unique([orderId, productId, variantId]) — satu item unik per order.
+
+### OrderStatusHistory
+
+Audit trail perubahan status order.
+
+```prisma
+model OrderStatusHistory {
+  id        Int         @id @default(autoincrement())
+  orderId   String      @db.Uuid
+  status    OrderStatus
+  notes     String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  order     Order       @relation(fields: [orderId], references: [id])
+}
+```
+
+### OrderAddress
+
+Snapshot alamat pengiriman dari RajaOngkir API + input user saat checkout. Tidak berubah setelah order dibuat.
+
+```prisma
+model OrderAddress {
+  id              Int    @id @default(autoincrement())
+  orderId         String @unique @db.Uuid
+  name            String
+  phone           String
+  provinceId      Int
+  provinceName    String
+  cityId          Int
+  cityName        String
+  districtId      Int
+  districtName    String
+  subdistrictId   Int
+  subdistrictName String
+  postalCode      String
+  road            String
+  completeAddress String
+  detail          String?
+  usedFor         String
+  order           Order  @relation(fields: [orderId], references: [id])
+}
+```
+
+### Address
+
+Alamat tersimpan pengguna (bisa dipakai berulang-ulang untuk order baru).
+
+```prisma
+model Address {
+  id              Int    @id @default(autoincrement())
+  userId          String @db.Uuid
+  name            String
+  phone           String
+  provinceId      Int
+  provinceName    String
+  cityId          Int
+  cityName        String
+  districtId      Int
+  districtName    String
+  subdistrictId   Int
+  subdistrictName String
+  postalCode      String
+  road            String
+  completeAddress String
+  detail          String?
+  usedFor         String
+  user            User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+```
+
+## Promo Kode
+
+### PromoCode
+
+Promo dengan berbagai tipe diskon: persentase produk, nominal tetap, atau gratis ongkir.
+
+```prisma
+model PromoCode {
+  id                      Int               @id @default(autoincrement())
+  code                    String            @unique
+  title                   String
+  description             String?
+  discountType            PromoDiscountType
+  discountValue           Decimal           @db.Decimal(12, 2)
+  minSpendIdr             Int               @default(0)
+  maxDiscountIdr          Int?
+  maxShippingDiscountIdr  Int?
+  usageLimit              Int?
+  usageCount              Int               @default(0)
+  maxUsagePerUser         Int               @default(1)
+  isActive                Boolean           @default(true)
+  startedAt               DateTime          @default(now())
+  expiresAt               DateTime
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  carts                   Cart[]
+  orders                  Order[]
+  usages                  PromoUsage[]
+}
+```
+
+@@index([code]) — pencarian kode promo cepat.
+
+### PromoUsage (Join Table)
+
+Tracking penggunaan promo per order per user.
+
+```prisma
+model PromoUsage {
+  id          Int    @id @default(autoincrement())
+  promoCodeId Int
+  userId      String @db.Uuid
+  orderId     String @db.Uuid
+  createdAt   DateTime @default(now())
+  promoCode   PromoCode @relation(fields: [promoCodeId], references: [id])
+  user        User    @relation(fields: [userId], references: [id])
+  order       Order   @relation(fields: [orderId], references: [id])
+}
+```
+
+### PromoDiscountType (Enum)
+
+```prisma
+enum PromoDiscountType {
+  PRODUCT_PERCENTAGE  // Diskon persen pada harga produk
+  PRODUCT_FIXED       // Diskon nominal tetap pada produk
+  FREE_SHIPPING       // Gratis ongkos kirim
+}
+```
+
+## Pengaturan
+
+### Setting
+
+Key-value store untuk pengaturan aplikasi dinamis.
+
+```prisma
+model Setting {
+  id          Int       @id @default(autoincrement())
+  key         String    @unique
+  value       String
+  type        String
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime? @updatedAt
+}
+```
+
+## Admin Audit Trail
+
+### AdminActivityLog
+
+Log aktivitas admin untuk audit. Indexed by user, entity, and date.
+
+```prisma
+model AdminActivityLog {
+  id        Int      @id @default(autoincrement())
+  userId    String   @db.Uuid
+  action    String
+  entity    String
+  entityId  String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+```
+
+@@index([userId]), @@index([entity]), @@index([createdAt]) — query log per user, per entity type, atau range tanggal.
+
+## AI Assistant Chat
+
+### AiRole (Enum)
+
+```prisma
+enum AiRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+```
+
+### AiConversation
+
+Percakapan antara user dan AI assistant. Tied ke `User` (cascade delete).
+
+```prisma
+model AiConversation {
+  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String      @db.Uuid
+  user      User        @relation(fields: [userId], references: [id])
+  messages  AiMessage[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+```
+
+@@index([userId]) — fetch percakapan per user cepat.
+
+### AiMessage
+
+Pesan individual dalam percakapan AI. Menyimpan metadata usage token dan model yang dipakai.
+
+```prisma
+model AiMessage {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversationId String         @db.Uuid
+  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           AiRole
+  content        String
+  blocked        Boolean        @default(false)
+  blockReason    String?
+  tokensUsed     Int            @default(0)
+  model          String         @default("openrouter/default")
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+}
+```
+
+@@index([conversationId]) — fetch riwayat chat cepat.
+
+## Relasi Utama (Entity Diagram)
+
+```mermaid
+erDiagram
+    User ||--o{ Order : places
+    User ||--o{ Cart : owns
+    User ||--o{ Address : saves
+    User ||--o{ Review : writes
+    User ||--o{ AdminActivityLog : performs
+    User ||--o{ AiConversation : starts
+
+    Order ||--o{ OrderItem : contains
+    Order }o--|| User : belongsTo
+    Order ||--|| OrderAddress : has
+    Order ||--o{ PromoUsage : uses
+
+    Cart ||--o{ CartItem : holds
+    Cart }o--|| User : "login"
+    Cart }o--o|| PromoCode : applies
+
+    Product ||--o{ ProductVariant : has
+    Product ||--o{ Image : displays
+    Product ||--o{ Review : gets
+    Product ||--o{ CartItem : inCart
+    Product ||--o{ OrderItem : ordered
+    Product ||--o| Category : belongsTo
+    Product ||--o| Highlight : featuredIn
+
+    ProductVariant ||--o{ Image : displays
+    ProductVariant ||--o| Discount : has
+    ProductVariant ||--o{ CartItem : in
+    ProductVariant ||--o{ OrderItem : ordered
+
+    Category ||--o{ Product : groups
+    Category ||--o{ Image : displays
+
+    Review }o--|| User : by
+    Review }o--|| Product : for
+    Review ||--o{ Image : attachments
+
+    PromoCode ||--o{ Cart : applied-to
+    PromoCode ||--o{ Order : applied-to
+    PromoCode ||--o{ PromoUsage : tracked-by
+
+    AiConversation ||--o{ AiMessage : contains
+    AiConversation }o--|| User : initiated-by
+```
+
+## Index & Constraint Summary
+
+| Tabel | Index/Constraint | Jenis | Fungsi |
+| :--- | :--- | :--- | :--- |
+| `User` | `email` | UNIQUE | Login lookup |
+| `Product` | `slug` | UNIQUE | URL-friendly ID |
+| `ProductVariant` | `[productId, sortOrder]` | UNIQUE | Urutan varian unik |
+| `Discount` | `variantId` | UNIQUE | Satu diskon/variant |
+| `Cart` | `sessionId` | UNIQUE | Guest cart lookup |
+| `Cart` | `[userId]` | INDEX | Query by user |
+| `Cart` | `[sessionId]` | INDEX | Query by session |
+| `Cart` | `[expiresAt]` | INDEX | Expired cart cleanup |
+| `Cart` | `orderId` | UNIQUE | Single active cart rule |
+| `CartItem` | `[cartId, productId, variantId]` | UNIQUE | No duplicate items |
+| `CartItem` | `[cartId]` | INDEX | Fetch cart items fast |
+| `CartItem` | `[productId]` | INDEX | Product-centric queries |
+| `OrderItem` | `[orderId, productId, variantId]` | UNIQUE | One line per combo |
+| `OrderItem` | `[orderId]` | INDEX | Fetch order lines |
+| `OrderItem` | `[productId]` | INDEX | Sales reports |
+| `OrderAddress` | `orderId` | UNIQUE | One address/order |
+| `Setting` | `key` | UNIQUE | Key-value lookup |
+| `AdminActivityLog` | `[userId]` | INDEX | User audit trail |
+| `AdminActivityLog` | `[entity]` | INDEX | Entity audit trail |
+| `AdminActivityLog` | `[createdAt]` | INDEX | Time-range queries |
+| `AiConversation` | `[userId]` | INDEX | User conversations |
+| `AiMessage` | `[conversationId]` | INDEX | Chat history |
+| `PromoCode` | `code` | UNIQUE | Promo validation |
+
+## Strategi Seed & Migrasi
+
+- **Migrasi**: `prisma migrate dev --name <label>` untuk development, `prisma migrate deploy` di production.
+- **Seed**: `prisma db seed` untuk mengisi data awal (admin user, kategori default, setting dasar).
+- **Vector extension**: pgvector diaktifkan via preview feature `postgresqlExtensions` — migrasi auto-create extension `vector` di PostgreSQL.
+- **Full-text search**: Preview feature `fullTextSearchPostgres` menyertakan GIN index support untuk text search native PostgreSQL.
+
+<Callout type="warn">
+  Kolom `embedding` bertipe `Unsupported("vector(1024)")` karena pgvector belum tersedia di Prisma stable release. Hindari field ini secara langsung via generated client; gunakan raw SQL atau helper service untuk vector operations.
+</Callout>
+
+## Referensi Lain
+
+- Skema lengkap sumber: [schema.prisma](https://github.com/khankhanfauzan/vi-mamabear-backend/blob/main/prisma/schema.prisma)
+- Standar & referensi API: [api-reference](/docs/developer/backend/api-reference)
+- Setup lokal: [index](/docs/developer/backend)
+- Panduan penulisan dokumentasi: [Panduan Penulisan Dokumentasi](/docs/developer/panduan-dokumentasi)
