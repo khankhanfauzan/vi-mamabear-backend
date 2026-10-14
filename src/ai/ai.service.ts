@@ -613,10 +613,7 @@ export class AiService {
       finalContent = finalContent.substring(0, 500) + '...';
     }
 
-    // Tambahkan Disclaimer (hanya sekali)
-    const disclaimer =
-      '\n\n---\nCatatan: Informasi ini bersifat edukatif dan bukan pengganti saran, diagnosis, atau penanganan dari tenaga medis/dokter profesional.';
-    finalContent += disclaimer;
+    // Disclaimer edukatif dirender FE saat menampilkan rekomendasi produk (VIMB-125)
 
     await this.aiRepo.createMessage({
       conversationId,

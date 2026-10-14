@@ -20,7 +20,7 @@ Asisten kesehatan berbasis LLM menjawab kebutuhan itu, tapi membawa risiko spesi
 
 | Risiko                                | Mengapa berbahaya                               | Solusi di kode ini                                                                                                          |
 | ------------------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| AI memberi diagnosis / dosis obat     | Domain medis = risiko keselamatan pengguna      | Guardrail medis input + output, system prompt berbatas ketat, disclaimer otomatis                                           |
+| AI memberi diagnosis / dosis obat     | Domain medis = risiko keselamatan pengguna      | Guardrail medis input + output, system prompt berbatas ketat, disclaimer dirender FE                                        |
 | AI mengarang produk yang tidak dijual | Merusak kepercayaan dan berpotensi klaim keliru | Konteks produk hanya dari katalog aktif, guardrail keberadaan produk, ekstraksi `[PRODUCT_IDS]` yang divalidasi balik ke DB |
 | LLM provider down / rate limit        | Fitur mati total                                | Dua model (primary + fallback) di OpenRouter dengan retry otomatis                                                          |
 | Pertanyaan ambigu dijawab asal        | Rekomendasi tidak berguna, user kecewa          | Mekanisme klarifikasi `[CLARIFY]` dengan aturan anti-loop                                                                   |
@@ -50,7 +50,7 @@ AiService.chat()
     ├─ 6. GuardrailService.checkOutput()    ← deteksi diagnosis/resep di jawaban
     ├─ 7. Deteksi [CLARIFY]                 → type='clarification', tanpa produk
     ├─ 8. Ekstraksi [PRODUCT_IDS] + fallback nama produk + semantic search
-    ├─ 9. Sanitasi teks, truncate 500 karakter, append disclaimer
+    ├─ 9. Sanitasi teks, truncate 500 karakter
     │
     └─ 10. Simpan ke DB (AiConversation/AiMessage) → response
 ```
@@ -110,8 +110,7 @@ flowchart TD
     N --> P[Sanitasi teks jawaban]
     O --> P
     P --> Q[Truncation<br/>maks 500 karakter]
-    Q --> R[Append disclaimer edukatif]
-    R --> S[Simpan ke DB + metadata produk]
+    Q --> S[Simpan ke DB + metadata produk]
     Z --> SAVE
     Z2 --> SAVE
     SAVE --> T[Response ke user]
@@ -125,8 +124,10 @@ Catatan penting:
   (pgvector cosine); semantic fallback di akhir juga memakai tabel yang sama.
 - "Fallback" ada dua tingkat: model LLM cadangan (OpenRouter) dan fallback
   pencocokan produk (tag → nama → semantic search).
-- Truncation dan disclaimer adalah langkah terakhir sebelum jawaban disimpan
-  dan dikembalikan ke user.
+- Truncation adalah langkah terakhir sebelum jawaban disimpan dan dikembalikan
+  ke user.
+- Disclaimer edukatif tidak ditambahkan BE ke `reply`; FE yang merender alert
+  peringatan saat respons berisi rekomendasi produk (VIMB-125).
 
 ## Mekanisme Guardrail Medis
 
@@ -174,7 +175,7 @@ rekomendasi resep spesifik diganti dengan pesan aman (`MEDICAL_DIAGNOSIS`,
 - Sanitasi jawaban: hapus tag internal model, kebersihan teks, buang kebocoran
   "ID produk" di narasi.
 - Truncate jawaban maksimal 500 karakter.
-- Disclaimer edukatif selalu di-append ("bukan pengganti saran/diagnosis dokter").
+- Disclaimer edukatif dirender FE, bukan di-append ke `reply` oleh BE (VIMB-125).
 - Batas 50 percakapan per user, otomatis hapus yang paling lama.
 
 ## Cara Update Data Embedding Produk
