@@ -15,6 +15,7 @@ ibu & bayi.
 
 Dokumentasi terkait:
 
+- Setup backend di lokal: [setup-lokal](/docs/developer/backend/setup-lokal)
 - Arsitektur & desain sistem: [arsitektur](/docs/developer/backend/arsitektur)
 - Standar & referensi API lengkap: [api-reference](/docs/developer/backend/api-reference)
 - Database & skema: [database-schema](/docs/developer/backend/database-schema)
@@ -23,115 +24,25 @@ Dokumentasi terkait:
 - Panduan pemeliharaan (deploy, log, migrasi DB): [pemeliharaan](/docs/developer/backend/pemeliharaan)
 - Environment variable: [`.env.example`](https://github.com/khankhanfauzan/vi-mamabear-backend/blob/main/.env.example)
 
-## Prasyarat
+## Setup & Pengembangan
 
-- Node.js 20+ dan npm
-- Docker + Docker Compose (untuk PostgreSQL ber-pgvector dan MailHog)
-- Akun OpenRouter (untuk fitur AI & embeddings)
+Panduan lengkap menyiapkan environment lokal (dependensi, environment variables, database pgvector, migrasi, seed), menjalankan server, testing, dan Docker ada di halaman terpisah:
 
-## Setup Lokal
+- **[Setup Backend di Lokal](/docs/developer/backend/setup-lokal)** — dari clone sampai server berjalan
 
-1. Clone repository:
-
-   ```bash
-   git clone git@github.com:khankhanfauzan/vi-mamabear-backend.git
-   cd vi-mamabear-backend
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
-3. Jalankan service pendukung (PostgreSQL + MailHog):
-
-   ```bash
-   docker compose up -d db mailhog
-   ```
-
-   - PostgreSQL: `localhost:5432` (user/password/db: `satria`/`satria`/`mamabear`)
-   - MailHog SMTP: `localhost:1025`, web UI: `http://localhost:8025`
-
-4. Salin template environment lalu isi sesuai kebutuhan (minimal `DATABASE_URL`,
-   JWT secrets, dan `OPENROUTER_API_KEY` untuk fitur AI):
-
-   ```bash
-   cp .env.example .env
-   ```
-
-   Daftar lengkap variabel dan fungsinya ada di `.env.example`.
-
-5. Jalankan migrasi database:
-
-   ```bash
-   npx prisma migrate deploy
-   ```
-
-6. (Opsional) Seed data produk, user, kategori, review, dan settings.
-   Membutuhkan `OPENROUTER_API_KEY` (embedding produk) dan kredensial Cloudinary
-   yang valid (upload gambar):
-
-   ```bash
-   npm run seed
-   ```
-
-## Menjalankan Server
+Ringkasan cepat:
 
 ```bash
-# development (watch mode)
-npm run start:dev
-
-# debug mode
-npm run start:debug
-
-# build untuk production (prisma generate + nest build)
-npm run build
-
-# jalankan hasil build
-npm run start:prod
-
-# migrate lalu start dalam satu langkah
-npm run start:migrate
+git clone git@github.com:khankhanfauzan/vi-mamabear-backend.git
+cd vi-mamabear-backend
+npm install
+cp .env.example .env          # isi DATABASE_URL & JWT secrets
+docker compose up -d db mailhog
+npx prisma migrate deploy
+npm run start:dev             # server di http://localhost:3001
 ```
 
-Server berjalan di `http://localhost:3001` (sesuai `PORT` di `.env`).
+## API & Kode Style
 
-## Menjalankan Test
-
-```bash
-# unit test
-npm run test
-
-# unit test watch mode
-npm run test:watch
-
-# e2e test (butup database aktif, lihat test/jest-e2e.json)
-npm run test:e2e
-
-# coverage
-npm run test:cov
-```
-
-## Menjalankan dengan Docker (opsional)
-
-```bash
-# build image lalu jalankan app + db + mailhog
-docker compose up -d --build
-```
-
-## Kode Style
-
-```bash
-# lint + auto-fix
-npm run lint
-
-# format dengan Prettier
-npm run format
-```
-
-## API
-
-Daftar endpoint lengkap ada di modul masing-masing di `src/`
-(controller per domain: auth, products, cart, orders, payment, ai, dll).
-Koleksi request siap pakai tersedia di folder `bruno/` (Bruno API client).
+- Daftar endpoint lengkap: [Standar & Referensi API](/docs/developer/backend/api-reference). Koleksi request siap pakai ada di folder `bruno/` (Bruno API client).
+- Lint & format sebelum commit: `npm run lint` (auto-fix ESLint) dan `npm run format` (Prettier).
