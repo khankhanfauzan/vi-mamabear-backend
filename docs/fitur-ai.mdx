@@ -1,0 +1,255 @@
+---
+title: Fitur AI Assistant
+description: Arsitektur layanan AI, integrasi OpenRouter LLM, guardrail medis, operasi data embedding, known limitations, dan rencana pengembangan.
+---
+
+Dokumen ini menjelaskan fitur AI Assistant secara spesifik: motivasi, arsitektur,
+guardrail, operasi data embedding, known limitations, dan rencana pengembangan.
+Konteks desain awal ada di [arsitektur](/docs/developer/backend/arsitektur) (Sprint 2);
+detail kebijakan guardrail produk ada di [product-guardrail](/docs/developer/backend/product-guardrail).
+
+## Problem & Alasan Solusi
+
+MamaBear adalah platform produk ibu dan bayi. Pengguna (terutama ibu hamil/menyusui)
+sering bertanya hal yang sifatnya edukatif: kelancaran ASI, nutrisi kehamilan,
+perawatan bayi — sebelum mereka tahu produk mana yang cocok. Tanpa bantuan,
+mereka harus mencari sendiri atau menunggu CS, dan rekomendasi produk menjadi
+tidak kontekstual.
+
+Asisten kesehatan berbasis LLM menjawab kebutuhan itu, tapi membawa risiko spesifik:
+
+| Risiko                                | Mengapa berbahaya                               | Solusi di kode ini                                                                                                          |
+| ------------------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| AI memberi diagnosis / dosis obat     | Domain medis = risiko keselamatan pengguna      | Guardrail medis input + output, system prompt berbatas ketat, disclaimer dirender FE                                        |
+| AI mengarang produk yang tidak dijual | Merusak kepercayaan dan berpotensi klaim keliru | Konteks produk hanya dari katalog aktif, guardrail keberadaan produk, ekstraksi `[PRODUCT_IDS]` yang divalidasi balik ke DB |
+| LLM provider down / rate limit        | Fitur mati total                                | Dua model (primary + fallback) di OpenRouter dengan retry otomatis                                                          |
+| Pertanyaan ambigu dijawab asal        | Rekomendasi tidak berguna, user kecewa          | Mekanisme klarifikasi `[CLARIFY]` dengan aturan anti-loop                                                                   |
+
+LLM dipilih lewat OpenRouter (bukan provider tunggal) karena memberi akses ke
+banyak model gratis sekaligus jalur fallback tanpa mengubah kode.
+
+## Arsitektur Singkat
+
+```text
+Client (Chat UI)
+    │  POST /ai/chat  (JWT + throttler)
+    ▼
+AiService.chat()
+    │
+    ├─ 1. Validasi panjang input (maks 1000 karakter)
+    │
+    ├─ 2. GuardrailService.check()          ← keyword medis, deterministik
+    ├─ 3. ProductScopeGuardrailService()    ← verifikasi katalog + pgvector
+    │       (blok? → simpan pesan blocked, return, TANPA memanggil LLM)
+    │
+    ├─ 4. Bangun system prompt + [DATA_PRODUK_AKTIF] (katalog aktif)
+    │     + riwayat 10 pesan aman terakhir
+    │
+    ├─ 5. OpenRouterClient.chat()           ← primary model, fallback bila 429/502/503
+    │
+    ├─ 6. GuardrailService.checkOutput()    ← deteksi diagnosis/resep di jawaban
+    ├─ 7. Deteksi [CLARIFY]                 → type='clarification', tanpa produk
+    ├─ 8. Ekstraksi [PRODUCT_IDS] + fallback nama produk + semantic search
+    ├─ 9. Sanitasi teks, truncate 500 karakter
+    │
+    └─ 10. Simpan ke DB (AiConversation/AiMessage) → response
+```
+
+Endpoint (semua di balik `JwtAuthGuard`):
+
+| Method   | Endpoint                            | Fungsi                                        |
+| -------- | ----------------------------------- | --------------------------------------------- |
+| `POST`   | `/ai/chat`                          | Kirim pesan (dilindungi `UserThrottlerGuard`) |
+| `GET`    | `/ai/conversations`                 | Daftar percakapan user                        |
+| `GET`    | `/ai/history/:conversationId`       | Riwayat pesan                                 |
+| `DELETE` | `/ai/conversations/:conversationId` | Hapus percakapan                              |
+
+Model OpenRouter:
+
+| Variabel                    | Default di kode               |
+| --------------------------- | ----------------------------- |
+| `OPENROUTER_MODEL`          | `poolside/laguna-xs-2.1:free` |
+| `OPENROUTER_FALLBACK_MODEL` | `liquid/lfm-2.5-2.6b:free`    |
+| `OPENROUTER_TIMEOUT_MS`     | `13000`                       |
+
+Fallback dipicu untuk HTTP 429, 502, 503. Error lain (401/403/timeout/dst)
+langsung dilempar tanpa retry. Jika primary dan fallback sama-sama gagal, user menerima
+`502 "AI sedang sibuk, coba lagi sebentar lagi."`
+
+Konteks produk (RAG sederhana): daftar produk aktif (ID, nama, harga, kategori,
+komposisi, deskripsi) ditempel ke system prompt sebagai `[DATA_PRODUK_AKTIF]`.
+LLM wajib memilih hanya dari daftar itu dan menandainya dengan tag
+`[PRODUCT_IDS: id]` di baris terakhir; tag dilepas dari teks sebelum dikirim ke user.
+
+## Flowchart Orkestrasi Chatbot AI
+
+Alur lengkap pemrosesan satu pesan chat (`POST /ai/chat` → `AiService.chat()`):
+
+```mermaid
+flowchart TD
+    A[Pesan user] --> B[Validasi panjang input<br/>maks 1000 karakter]
+    B --> C[Input Guardrail<br/>keyword medis: darurat / resep / out-of-scope]
+    C -->|BLOCKED| Z[Simpan pesan blocked ke DB<br/>return respons aman<br/>tanpa memanggil LLM]
+    C -->|lolos| D[Product Scope Guardrail<br/>ekstraksi query produk]
+    D -->|ada query| E[Cek katalog aktif di DB<br/>nama/tag literal + embedding pgvector<br/>skor >= PRODUCT_MATCH_THRESHOLD]
+    E -->|tidak ada / katalog gagal| Z
+    E -->|lolos / tanpa query| F[Bangun system prompt<br/>riwayat 10 pesan aman +<br/>DATA_PRODUK_AKTIF dari DB]
+    F --> G[LLM primary via OpenRouter]
+    G -->|429 / 502 / 503 / timeout| H[LLM fallback model]
+    G -->|sukses| I[Output Guardrail<br/>deteksi diagnosis / resep di jawaban]
+    H -->|gagal juga| ERR[HTTP 502<br/>AI sedang sibuk]
+    H -->|sukses| I
+    I -->|BLOCKED| Z2[Simpan respons pengganti aman<br/>ke DB, reply null]
+    I -->|lolos| J{Prefix [CLARIFY]?}
+    J -->|ya| K[Return tipe clarification<br/>tanpa ekstraksi produk]
+    J -->|tidak| L[Ekstraksi tag PRODUCT_IDS<br/>dari jawaban LLM]
+    L -->|tag tidak ada| M[Fallback 1: nama produk di teks]
+    M -->|tidak cocok| N[Fallback 2: semantic search<br/>embedding produk di DB<br/>top 3, skor >= 0.22]
+    L -->|ada tag| O[Validasi ID ke DB]
+    K --> SAVE[(Simpan ke tabel<br/>AiConversation / AiMessage)]
+    N --> P[Sanitasi teks jawaban]
+    O --> P
+    P --> Q[Truncation<br/>maks 500 karakter]
+    Q --> S[Simpan ke DB + metadata produk]
+    Z --> SAVE
+    Z2 --> SAVE
+    SAVE --> T[Response ke user]
+```
+
+Catatan penting:
+
+- Urutan guardrail: **input → keberadaan produk → output**. Semua blok disimpan
+  ke DB dengan flag `blocked: true` untuk audit dan tidak ikut konteks prompt.
+- "DB embedding" = verifikasi produk memakai kolom `Product.embedding`
+  (pgvector cosine); semantic fallback di akhir juga memakai tabel yang sama.
+- "Fallback" ada dua tingkat: model LLM cadangan (OpenRouter) dan fallback
+  pencocokan produk (tag → nama → semantic search).
+- Truncation adalah langkah terakhir sebelum jawaban disimpan dan dikembalikan
+  ke user.
+- Disclaimer edukatif tidak ditambahkan BE ke `reply`; FE yang merender alert
+  peringatan saat respons berisi rekomendasi produk (VIMB-125).
+
+## Mekanisme Guardrail Medis
+
+### 1. Input guardrail (`GuardrailService.check`)
+
+Deterministik berbasis keyword/regex, dijalankan sebelum LLM. Urutan prioritas:
+
+| Prioritas | Block reason              | Contoh pemicu                         | Respons                    |
+| --------- | ------------------------- | ------------------------------------- | -------------------------- |
+| 1         | `EMERGENCY_MEDICAL_QUERY` | "pendarahan hebat sekarang", "kejang" | Arahkan ke IGD/dokter      |
+| 2         | `PRESCRIPTION_REQUEST`    | minta resep/dosis obat                | Sarankan konsultasi dokter |
+| 3         | `OUT_OF_SCOPE`            | di luar kesehatan ibu & bayi          | Redirect ramah ke scope    |
+
+Pengecualian penting: pola **edukatif/hypotetikal** (mis. "kalau ada pendarahan
+trimester 3 normal ga?") melewati blok darurat sehingga tetap dijawab secara
+edukatif. Blok darurat aktif ("tolong saya pendarahan parah sekarang!") tetap
+terblokir. Detail keyword: `src/ai/guardrail/blocked-keywords.ts`.
+
+### 2. Guardrail keberadaan produk (`ProductScopeGuardrailService`)
+
+Pertanyaan transaksi/availability yang menyebut produk diperiksa terhadap
+katalog sebelum LLM dipanggil:
+
+1. Ekstraksi query produk memakai aturan deterministik bahasa Indonesia.
+2. Nama/tag literal produk aktif = bukti langsung lolos.
+3. Kandidat semantik: pgvector cosine similarity terhadap embedding produk
+   (maks 20 kandidat aktif), skor wajib ≥ `PRODUCT_MATCH_THRESHOLD` (default
+   **0.75, provisional** — belum dikalibrasi; lihat `product-guardrail.mdx`).
+4. Gagal mengakses katalog → `PRODUCT_CATALOG_UNAVAILABLE` (tidak mengklaim
+   produk absen). Tidak ada kecocokan → `PRODUCT_OUT_OF_SCOPE`.
+
+Respons blok memakai bentuk API yang sama (`success: false`, `reply: null`,
+`products: []`), dan pesan pengganti yang aman ikut tersimpan di riwayat.
+
+### 3. Output guardrail (`GuardrailService.checkOutput`)
+
+Memeriksa jawaban LLM sebelum sampai ke user: deteksi diagnosis medis dan
+rekomendasi resep spesifik diganti dengan pesan aman (`MEDICAL_DIAGNOSIS`,
+`SPECIFIC_PRESCRIPTION`).
+
+### 4. Lapisan tambahan di AiService
+
+- Semua pesan yang diblok tersimpan dengan flag `blocked: true` + `blockReason`
+  untuk audit, dan **tidak ikut** dalam konteks prompt percakapan berikutnya.
+- Sanitasi jawaban: hapus tag internal model, kebersihan teks, buang kebocoran
+  "ID produk" di narasi.
+- Truncate jawaban maksimal 500 karakter.
+- Disclaimer edukatif dirender FE, bukan di-append ke `reply` oleh BE (VIMB-125).
+- Batas 50 percakapan per user, otomatis hapus yang paling lama.
+
+## Cara Update Data Embedding Produk
+
+Embedding dipakai untuk semantic product fallback dan guardrail keberadaan produk.
+
+- Model: `liquid/lfm-2.5-embedding-350m:free` (1024 dimensi), lewat OpenRouter.
+- Skor gabungan per produk: `name` bobot 1.0, `tags` bobot 2.0, `description`
+  bobot 0.15, lalu dirata-rata (`src/embeddings/embeddings.service.ts`).
+- **Kapan di-generate**: otomatis saat **create** produk
+  (`ProductsRepository.create` → `generateEmbeddingsFromProduct` → kolom
+  `Product.embedding` tipe `vector` (pgvector)).
+- **Saat update produk**: embedding **tidak** di-generate ulang otomatis.
+  Setelah mengubah nama/deskripsi/tags produk secara signifikan, embedding perlu
+  di-refresh (lihat Known Limitations).
+- Query semantic: `1 - (embedding <=> query_vector)` cosine similarity
+  (`AiRepository.findProductsBySemanticSearch`, fallback threshold 0.22, top 3;
+  guardrail produk pakai threshold `PRODUCT_MATCH_THRESHOLD`).
+- Kalibrasi threshold guardrail: `node scripts/calibrate-product-guardrail.mjs path/to/cases.json`
+  (read-only, tidak mengubah database). Prosedur lengkap: `docs/product-guardrail.mdx`.
+- Kegagalan generate embedding bukan fatal: produk tetap tersimpan tanpa
+  embedding (logged sebagai warning).
+
+## Known Limitations
+
+1. **Threshold guardrail 0.75 provisional** — test mock hanya membuktikan perilaku
+   di batas, bukan akurasi pada katalog nyata. Wajib kalibrasi sebelum rilis.
+2. **Guardrail berbasis regex bahasa Indonesia** — parafrase, typo baru, atau
+   bahasa Inggris dapat lolos/diblokir keliru. Setiap kasus baru harus ditambahkan
+   sebagai regression test.
+3. **Embedding tidak otomatis ter-refresh saat update produk** — nama/tags/deskripsi
+   bisa berubah tanpa sinkron ke vektor, menurunkan akurasi semantic search dan
+   guardrail sampai di-refresh manual.
+4. **Konteks katalog penuh di system prompt** — semua produk aktif ditempel per
+   request; biaya token dan latensi tumbuh linear dengan jumlah produk.
+5. **Model gratis OpenRouter** — latensi dan ketersediaan tidak dijamin; fallback
+   model lebih kecil berpotensi kualitas turun (salah satu alasan adanya fallback
+   berbasis nama produk dan semantic search di kode).
+6. **Satu bahasa** — prompt dan guardrail dioptimalkan untuk bahasa Indonesia.
+7. **Tidak ada persistensi ringkasan percakapan** — konteks dibatasi 10 pesan
+   aman terakhir; percakapan panjang kehilangan konteks awal.
+
+## Ide Pengembangan Lanjutan
+
+- Regenerasi embedding otomatis pada update produk (hook di `ProductsService.update`)
+  plus skrip backfill untuk produk lama.
+- Embedding per-region/chunk (deskripsi dipotong) dan hybrid search
+  (keyword + vector) untuk katalog besar.
+- Kalibrasi threshold berbasis dataset berlabel, lalu monitoring false positive
+  dari tabel pesan `blocked` (data audit sudah tersedia).
+- Guardrail berbasis model (LLM classifier) untuk menangkap parafrase di luar
+  regex, dengan biaya/latensi yang tetap terkendali.
+- Ringkasan percakapan (summary token) untuk mempertahankan konteks lintas sesi.
+- Rate limiting dan observability per-user (token usage sudah disimpan per pesan:
+  `tokensUsed`, `model`) dipakai untuk dashboard pemakaian.
+- Evaluasi A/B model OpenRouter: ganti `OPENROUTER_MODEL`/`OPENROUTER_FALLBACK_MODEL`
+  per environment tanpa ubah kode.
+
+## Peta Kode
+
+```text
+src/ai/
+├── ai.controller.ts                       # Endpoint /ai/*
+├── ai.service.ts                          # Orchestration + system prompt + ekstraksi produk
+├── ai.repository.ts                       # CRUD percakapan, katalog context, semantic search
+├── openrouter/openrouter.client.ts        # HTTP client + primary/fallback model
+├── guardrail/
+│   ├── guardrail.service.ts               # Input + output guardrail medis
+│   ├── blocked-keywords.ts                # Keyword/regex & block reasons
+│   ├── guardrail-messages.ts              # Pesan blok humanized
+│   ├── product-scope-guardrail.service.ts # Verifikasi keberadaan produk (pgvector)
+│   └── product-scope.ts                   # Ekstraksi query & pencocokan identitas produk
+└── dto/                                   # Chat request/response, history, summary
+src/embeddings/embeddings.service.ts       # Generate embedding produk (weighted)
+scripts/calibrate-product-guardrail.mjs    # Kalibrasi threshold read-only
+docs/product-guardrail.mdx                 # Kebijakan & prosedur kalibrasi guardrail produk
+```
