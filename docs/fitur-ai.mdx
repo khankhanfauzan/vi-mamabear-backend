@@ -1,9 +1,12 @@
-# Dokumentasi Fitur AI — MamaBear Backend
+---
+title: Fitur AI Assistant
+description: Arsitektur layanan AI, integrasi OpenRouter LLM, guardrail medis, operasi data embedding, known limitations, dan rencana pengembangan.
+---
 
 Dokumen ini menjelaskan fitur AI Assistant secara spesifik: motivasi, arsitektur,
 guardrail, operasi data embedding, known limitations, dan rencana pengembangan.
-Konteks desain awal ada di [`DESIGN-NOTE.md`](../DESIGN-NOTE.md) (Sprint 2);
-detail kebijakan guardrail produk ada di [`docs/product-guardrail.md`](product-guardrail.md).
+Konteks desain awal ada di [arsitektur](/docs/developer/backend/arsitektur) (Sprint 2);
+detail kebijakan guardrail produk ada di [product-guardrail](/docs/developer/backend/product-guardrail).
 
 ## Problem & Alasan Solusi
 
@@ -27,7 +30,7 @@ banyak model gratis sekaligus jalur fallback tanpa mengubah kode.
 
 ## Arsitektur Singkat
 
-```
+```text
 Client (Chat UI)
     │  POST /ai/chat  (JWT + throttler)
     ▼
@@ -151,7 +154,7 @@ katalog sebelum LLM dipanggil:
 2. Nama/tag literal produk aktif = bukti langsung lolos.
 3. Kandidat semantik: pgvector cosine similarity terhadap embedding produk
    (maks 20 kandidat aktif), skor wajib ≥ `PRODUCT_MATCH_THRESHOLD` (default
-   **0.75, provisional** — belum dikalibrasi; lihat `product-guardrail.md`).
+   **0.75, provisional** — belum dikalibrasi; lihat `product-guardrail.mdx`).
 4. Gagal mengakses katalog → `PRODUCT_CATALOG_UNAVAILABLE` (tidak mengklaim
    produk absen). Tidak ada kecocokan → `PRODUCT_OUT_OF_SCOPE`.
 
@@ -191,7 +194,7 @@ Embedding dipakai untuk semantic product fallback dan guardrail keberadaan produ
   (`AiRepository.findProductsBySemanticSearch`, fallback threshold 0.22, top 3;
   guardrail produk pakai threshold `PRODUCT_MATCH_THRESHOLD`).
 - Kalibrasi threshold guardrail: `node scripts/calibrate-product-guardrail.mjs path/to/cases.json`
-  (read-only, tidak mengubah database). Prosedur lengkap: `docs/product-guardrail.md`.
+  (read-only, tidak mengubah database). Prosedur lengkap: `docs/product-guardrail.mdx`.
 - Kegagalan generate embedding bukan fatal: produk tetap tersimpan tanpa
   embedding (logged sebagai warning).
 
@@ -232,7 +235,7 @@ Embedding dipakai untuk semantic product fallback dan guardrail keberadaan produ
 
 ## Peta Kode
 
-```
+```text
 src/ai/
 ├── ai.controller.ts                       # Endpoint /ai/*
 ├── ai.service.ts                          # Orchestration + system prompt + ekstraksi produk
@@ -247,5 +250,5 @@ src/ai/
 └── dto/                                   # Chat request/response, history, summary
 src/embeddings/embeddings.service.ts       # Generate embedding produk (weighted)
 scripts/calibrate-product-guardrail.mjs    # Kalibrasi threshold read-only
-docs/product-guardrail.md                  # Kebijakan & prosedur kalibrasi guardrail produk
+docs/product-guardrail.mdx                 # Kebijakan & prosedur kalibrasi guardrail produk
 ```
