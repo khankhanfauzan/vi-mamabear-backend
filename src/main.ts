@@ -34,33 +34,34 @@ async function bootstrap() {
       whitelist: true,
     }),
   );
-  const config = new DocumentBuilder()
-    .setTitle('MamaBear API')
-    .setDescription('MamaBear Backend API Documentation')
-    .setVersion('1.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'JWT',
-        description: 'Enter JWT token',
-        in: 'header',
-      },
-      'JwtAuthGuard', // 🔑 This name must match the @ApiBearerAuth decorator
-    )
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('MamaBear API')
+      .setDescription('MamaBear Backend API Documentation')
+      .setVersion('1.0')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          name: 'JWT',
+          description: 'Enter JWT token',
+          in: 'header',
+        },
+        'JwtAuthGuard', // 🔑 This name must match the @ApiBearerAuth decorator
+      )
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api', app, document);
+  }
 
   const port = process.env.PORT ?? 3000;
   if (process.env.NODE_ENV == 'ci') {
     await app.listen(port, '0.0.0.0');
     const timeMs = 30000;
     console.log(`[ci] Aborting application within ${timeMs}`);
-    setTimeout(async () => {
-      await app.close();
-      process.exit(0);
+    setTimeout(() => {
+      void app.close().finally(() => process.exit(0));
     }, 10000);
   } else {
     await app.listen(port, '0.0.0.0');
