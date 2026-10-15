@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { getHeapStatistics } from 'node:v8';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -21,20 +22,22 @@ export class HealthService {
             ? 'degraded'
             : 'unhealthy';
       dbMessage = 'Connection successful';
-    } catch (error: any) {
+    } catch (error: unknown) {
       dbLatency = Date.now() - dbStartTime;
-      dbMessage = error.message;
+      dbMessage = error instanceof Error ? error.message : 'Connection failed';
     }
 
-    // Mock storage health check as requested
-    const storageLatency = 28; // Example latency
-    const storageStatus =
-      storageLatency < 50
-        ? 'healthy'
-        : storageLatency <= 150
+    // Compare used JS heap to V8's actual limit, not its currently allocated heap.
+    const heapUsed = process.memoryUsage().heapUsed;
+    const heapLimit = getHeapStatistics().heap_size_limit;
+    const heapUsage = heapUsed / heapLimit;
+    // Warn at 75%; report unhealthy at 90% of the V8 heap limit.
+    const memoryStatus =
+      heapUsage >= 0.9
+        ? 'unhealthy'
+        : heapUsage >= 0.75
           ? 'degraded'
-          : 'unhealthy';
-    const storageMessage = 'S3 accessible';
+          : 'healthy';
 
     const checks = {
       database: {
@@ -42,10 +45,17 @@ export class HealthService {
         latencyMs: dbLatency,
         message: dbMessage,
       },
-      storage: {
-        status: storageStatus,
-        latencyMs: storageLatency,
-        message: storageMessage,
+      memory: {
+        status: memoryStatus,
+        heapUsedMb: heapUsed / 1024 ** 2,
+        heapLimitMb: heapLimit / 1024 ** 2,
+        usagePercent: heapUsage * 100,
+        message:
+          memoryStatus === 'unhealthy'
+            ? 'Heap usage at or above 90% of the V8 heap limit'
+            : memoryStatus === 'degraded'
+              ? 'Heap usage at or above 75% of the V8 heap limit'
+              : 'Heap usage within limits',
       },
     };
 
