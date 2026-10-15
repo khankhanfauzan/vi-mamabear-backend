@@ -1,0 +1,243 @@
+---
+title: Setup Backend di Lokal
+description: Panduan lengkap menyiapkan environment lokal, menjalankan database, migrasi, seed, server, dan testing untuk backend MamaBear.
+---
+
+Halaman ini memandu developer dari nol sampai backend MamaBear berjalan di komputer lokal: dependensi, environment variables, database PostgreSQL (pgvector), migrasi & seed, menjalankan server, sampai menjalankan test.
+
+<Callout type="info">
+  Instruksi di bawah diuji pada **Linux** dengan **Node.js 20+**. Untuk macOS langkahnya identik; untuk Windows perhatikan catatan PowerShell di bagian environment variables.
+</Callout>
+
+## Prasyarat
+
+| Keperluan | Versi Minimum | Cek Versi |
+| :--- | :--- | :--- |
+| Node.js | 20+ | `node -v` |
+| npm | 10+ | `npm -v` |
+| Docker & Docker Compose | Any | `docker -v` & `docker compose version` |
+| Git | Any | `git --version` |
+
+<Callout type="warn">
+  Fitur AI & seed produk membutuhkan API key **OpenRouter**. Tanpa API key tersebut, server tetap jalan tapi endpoint `/api/ai/*` dan seed embedding produk tidak berfungsi.
+</Callout>
+
+## 1. Clone Repository
+
+```bash
+git clone git@github.com:khankhanfauzan/vi-mamabear-backend.git
+cd vi-mamabear-backend
+```
+
+## 2. Install Dependencies
+
+```bash
+npm install
+```
+
+Instalasi ini otomatis menjalankan `prisma generate` (via `postinstall`) untuk membuat Prisma Client di `src/generated/prisma`.
+
+## 3. Siapkan Environment Variables
+
+Salin template lalu isi sesuai kebutuhan:
+
+```bash
+cp .env.example .env
+```
+
+Variabel **wajib** diisi agar server bisa jalan:
+
+| Variabel | Keterangan | Nilai Lokal |
+| :--- | :--- | :--- |
+| `NODE_ENV` | Mode lingkungan | `development` |
+| `PORT` | Port server | `3001` |
+| `DATABASE_URL` | Koneksi PostgreSQL | `postgresql://satria:satria@localhost:5432/mamabear?schema=public` |
+| `JWT_ACCESS_SECRET` | Rahasia tanda tangan access token | string acak ≥32 karakter |
+| `JWT_REFRESH_SECRET` | Rahasia tanda tangan refresh token | string acak ≥32 karakter |
+
+<Callout type="warn">
+  `DATABASE_URL` di `.env.example` memakai user `postgres`. Untuk menjalankan lewat Docker Compose di bawah, ganti dengan kredensial container `db` yaitu `satria:satria@db:5432/mamabear` (lihat bagian [Menjalankan via Docker](#menjalankan-via-docker)). Saat menjalankan app di luar Docker (host), gunakan `localhost`.
+</Callout>
+
+Generate dua secret acak dengan cepat:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Variabel lain bersifat opsional untuk development lokal:
+
+- **Email**: biarkan kosong untuk memakai **MailHog** (lihat bagian database).
+- **Cloudinary**: kosongkan — upload gambar akan memakai placeholder.
+- **Midtrans**: kosongkan — fitur pembayaran tidak aktif.
+- **RajaOngkir**: kosongkan — cek ongkir tidak aktif.
+- **OpenRouter**: kosongkan — fitur AI tidak aktif.
+
+## 4. Jalankan Service Pendukung
+
+### Opsi A — Docker Compose (direkomendasikan)
+
+```bash
+docker compose up -d db mailhog
+```
+
+Service yang berjalan:
+
+| Service | Port | Keterangan |
+| :--- | :--- | :--- |
+| `db` (PostgreSQL 16 + pgvector) | `5432` | DB: `mamabear`, user/pass: `satria`/`satria` |
+| `mailhog` (SMTP) | `1025` (SMTP), `8025` (Web UI) | Penerima email dev: buka `http://localhost:8025` |
+
+### Opsi B — PostgreSQL Manual
+
+Jika sudah punya PostgreSQL lokal, buat database & user:
+
+```sql
+CREATE USER satria WITH PASSWORD 'satria';
+CREATE DATABASE mamabear OWNER satria;
+```
+
+Pastikan ekstensi **pgvector** tersedia (untuk pencarian semantik & seed produk):
+
+```sql
+\c mamabear
+CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+Verifikasi container sudah sehat:
+
+```bash
+docker compose ps
+```
+
+## 5. Migrasi Database
+
+```bash
+npx prisma migrate deploy
+```
+
+<Callout type="info">
+  Pakai `migrate deploy` (bukan `migrate dev`) untuk menerapkan migrasi yang sudah ada. Gunakan `npx prisma migrate dev --name <label>` hanya saat membuat migrasi baru.
+</Callout>
+
+Buka Prisma Studio untuk inspeksi data (opsional):
+
+```bash
+npx prisma studio
+```
+
+## 6. Seed Data (Opsional)
+
+Seed mengisi data awal: user admin, kategori, produk + varian, review, dan settings.
+
+```bash
+npm run seed
+```
+
+<Callout type="warn">
+  Seed produk membutuhkan `OPENROUTER_API_KEY` yang valid (untuk embedding) dan kredensial **Cloudinary** (untuk upload gambar). Tanpa keduanya, sebagian seed akan dilewati atau gagal.
+</Callout>
+
+Setelah seed, gunakan akun admin bawaan untuk login ke panel admin (kredensial dicetak di akhir proses seed).
+
+## 7. Menjalankan Server
+
+<Steps>
+  <Step>
+    #### Development (watch mode)
+
+    ```bash
+    npm run start:dev
+    ```
+
+    Server berjalan di `http://localhost:3001` dan reload otomatis saat file berubah.
+  </Step>
+  <Step>
+    #### Build & jalankan mode produksi lokal
+
+    ```bash
+    npm run build
+    npm run start:prod
+    ```
+
+    <Callout type="info">
+      Saat `NODE_ENV=production`, Swagger UI **tidak** dipasang (lihat [Standar & Referensi API](/docs/developer/backend/api-reference)). Untuk dokumentasi API interaktif, jalankan server dalam mode development.
+    </Callout>
+  </Step>
+  <Step>
+    #### Migrate lalu start dalam satu langkah
+
+    ```bash
+    npm run start:migrate
+    ```
+  </Step>
+</Steps>
+
+Cek kesehatan server:
+
+```bash
+curl http://localhost:3001/api/health
+```
+
+## 8. Menjalankan Test
+
+```bash
+# unit test
+npm run test
+
+# unit test watch mode
+npm run test:watch
+
+# coverage
+npm run test:cov
+
+# e2e test (butuh database aktif)
+npm run test:e2e
+```
+
+## Menjalankan via Docker (Full Stack)
+
+Untuk menjalankan aplikasi + database + MailHog sekaligus dalam container:
+
+```bash
+# build image lalu jalankan semua service
+docker compose up -d --build
+```
+
+Dalam mode ini `DATABASE_URL` di-override oleh compose ke host container `db`:
+
+```env
+DATABASE_URL=postgresql://satria:satria@db:5432/mamabear?schema=public
+```
+
+Aplikasi tersedia di `http://localhost:3001`.
+
+## Kode Style
+
+Jaga konsistensi kode sebelum commit:
+
+```bash
+# lint + auto-fix
+npm run lint
+
+# format dengan Prettier
+npm run format
+```
+
+## Pemecahan Masalah Umum
+
+| Gejala | Penyebab | Solusi |
+| :--- | :--- | :--- |
+| `P1001: Can't reach database server` | Container DB belum jalan / port salah | `docker compose up -d db` lalu cek `docker compose ps` |
+| `extension "vector" is not available` | pgvector belum terpasang | `CREATE EXTENSION IF NOT EXISTS vector;` pada DB target |
+| `Prisma Client belum di-generate` | `postinstall` gagal saat `npm install` | `npx prisma generate` |
+| Email verifikasi tidak masuk | SMTP tidak dikonfigurasi | Buka MailHog di `http://localhost:8025` |
+| Endpoint `/api/ai/*` error 502 | `OPENROUTER_API_KEY` kosong/tidak valid | Isi key di `.env` lalu restart server |
+| Port `3001` sudah dipakai | Aplikasi lain memakai port | Ubah `PORT` di `.env` |
+
+## Referensi Lain
+
+- Environment variable lengkap: [`.env.example`](https://github.com/khankhanfauzan/vi-mamabear-backend/blob/main/.env.example)
+- Skema database: [database-schema](/docs/developer/backend/database-schema)
+- Panduan pemeliharaan (deploy, log, migrasi produksi): [pemeliharaan](/docs/developer/backend/pemeliharaan)
+- Panduan penulisan dokumentasi: [Panduan Penulisan Dokumentasi](/docs/developer/panduan-dokumentasi)
