@@ -16,6 +16,7 @@ import { ConversationSummaryDto } from './dto/conversation-summary.dto';
 import { ConversationHistoryDto } from './dto/conversation-history.dto';
 import { GuardrailService } from './guardrail/guardrail.service';
 import { ProductScopeGuardrailService } from './guardrail/product-scope-guardrail.service';
+import { truncateReply } from './reply-truncation';
 
 const MAX_INPUT_LENGTH = 1000;
 const MAX_CONVERSATIONS_PER_USER = 50;
@@ -610,7 +611,7 @@ export class AiService {
 
     // Truncate jika > 500 karakter
     if (finalContent.length > 500) {
-      finalContent = finalContent.substring(0, 500) + '...';
+      finalContent = truncateReply(finalContent);
     }
 
     // Disclaimer edukatif dirender FE saat menampilkan rekomendasi produk (VIMB-125)
